@@ -9,7 +9,17 @@ let errors = 0; const err = m => { errors++; console.log('✗', m); };
 // lessons reference real items, each exactly once
 const seen = {};
 GL.lessons.forEach(l => {
-  if (l.items.length !== 5) err(`lesson ${l.id} has ${l.items.length} items`);
+  if (l.cards) {   // explainer lesson: no new letters, but cards and a quiz
+    if (l.items.length) err(`lesson ${l.id}: explainer lessons teach no letters`);
+    if (!GL.lessonById(l.after)) err(`lesson ${l.id}: unknown prerequisite ${l.after}`);
+    if (!l.quiz || l.quiz.length < 6) err(`lesson ${l.id}: needs a quiz of at least 6 questions`);
+    l.cards.forEach((c, i) => { if (!c.title || !c.body) err(`lesson ${l.id} card ${i + 1}: missing title or body`); (c.rows || []).forEach(r => { if (!r.gu || !r.roman) err(`lesson ${l.id} card ${i + 1}: row missing gu/roman`); }); });
+    (l.quiz || []).forEach((q, i) => {
+      if (!q.ask || !q.why) err(`lesson ${l.id} quiz ${i + 1}: missing ask/why`);
+      if (!(q.opts.length >= 2 && q.ans >= 0 && q.ans < q.opts.length)) err(`lesson ${l.id} quiz ${i + 1}: bad answer index`);
+      if (new Set(q.opts).size !== q.opts.length) err(`lesson ${l.id} quiz ${i + 1}: duplicate options`);
+    });
+  } else if (l.items.length !== 5) err(`lesson ${l.id} has ${l.items.length} items`);
   l.items.forEach(id => { if (!GL.itemById[id]) err(`lesson ${l.id}: unknown item ${id}`); if (seen[id]) err(`${id} taught twice`); seen[id] = l.id; });
 });
 GL.items.forEach(it => {

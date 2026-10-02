@@ -164,6 +164,23 @@ GL.games = (function () {
     return { kind: 'build', track: { word: word.gu }, word: word, pool: pool, instruction: 'Build the word from the tiles', explain: h('span', null, gu(word.gu), ' = ', h('b', null, word.roman), ' — ', word.en), speak: word.gu };
   }
 
+  /* A hand-written question from an explainer lesson (see Part 2 in lessons.js). The first listed option need not be
+     the right one: `ans` says which, and the options are shuffled here. */
+  function conceptQ(spec) {
+    var short = spec.gu && spec.opts.every(function (o) { return Array.from(o).length <= 4; });
+    var opts = spec.opts.map(function (o, i) {
+      var node = spec.gu ? gu(o, short ? 'glyph-opt' : 'word-opt') : h('span', { class: 'en-opt' }, o);
+      return { node: node, correct: i === spec.ans, key: o, note: null };
+    });
+    return {
+      kind: 'choice', track: {}, cls: spec.gu ? (short ? 'glyph' : 'spell') : 'word', layout: spec.gu && !short ? 'col' : null,
+      instruction: spec.ask,
+      prompt: spec.big ? h('div', { class: 'bigword' }, gu(spec.big)) : spec.cue ? h('div', { class: 'spell-prompt' }, h('p', { class: 'cue' }, spec.cue)) : h('div'),
+      options: GL.shuffle(opts),
+      explain: h('span', { html: spec.why })
+    };
+  }
+
   /* Pick words to ask about, preferring ones that use `focus` letters. */
   function pickWords(words, n, focus) {
     focus = focus || [];
@@ -477,5 +494,5 @@ GL.games = (function () {
     render();
   }
 
-  return { build: build, run: run, resultCard: resultCard, flashcards: flashcards, wordQ: wordQ, buildQ: buildQ, pickWords: pickWords };
+  return { build: build, run: run, resultCard: resultCard, flashcards: flashcards, wordQ: wordQ, buildQ: buildQ, pickWords: pickWords, conceptQ: conceptQ };
 })();

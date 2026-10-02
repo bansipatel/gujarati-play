@@ -71,5 +71,21 @@ GL.words = ([
   // lesson 12
   ['મિત્ર', 'mitra', 'friend'], ['રસ્તો', 'rasto', 'road'], ['પ્રેમ', 'prem', 'love'], ['શ્રી', 'shree', 'Shri (respectful title)'],
   ['સ્વાદ', 'svaad', 'taste'], ['પુસ્તક', 'pustak', 'book'], ['ત્રણ', 'traN', 'three'], ['છત્રી', 'chhatree', 'umbrella'],
-  ['પત્ર', 'patra', 'letter'], ['સ્વર', 'svar', 'voice, vowel'], ['સ્ત્રી', 'stree', 'woman']
+  ['પત્ર', 'patra', 'letter'], ['સ્વર', 'svar', 'voice, vowel'], ['સ્ત્રી', 'stree', 'woman'],
+  // Part 2: the dot and long/short vowels (the sound of the dot as m is left out, since hints write it as n)
+  ['રંગ', 'rang', 'colour'], ['અંગ', 'ang', 'body part'], ['પંચ', 'panch', 'five; a group'], ['વાંચ', 'vaanch', 'read!'],
+  ['ઝાંઝર', 'jhaanjhar', 'anklet'], ['ઘંટ', 'ghanT', 'bell'], ['ઊંડું', 'oonDun', 'deep'], ['ચાંદો', 'chaando', 'moon'],
+  ['બંધ', 'bandh', 'closed'], ['ગંધ', 'gandh', 'smell'], ['અંદર', 'andar', 'inside'], ['અંત', 'ant', 'end'],
+  ['ઈંટ', 'eenT', 'brick'], ['સુંદર', 'sundar', 'beautiful'], ['બંગલો', 'bangalo', 'bungalow'],
+  ['કવિ', 'kavi', 'poet'], ['રવિ', 'ravi', 'sun; Sunday'], ['પતિ', 'pati', 'husband'], ['ગતિ', 'gati', 'speed'],
+  ['ગુરુ', 'guru', 'teacher'], ['સાધુ', 'saadhu', 'monk'], ['વસ્તુ', 'vastu', 'thing'], ['વાયુ', 'vaayu', 'wind, air'],
+  ['ગીત', 'geet', 'song'], ['કીડી', 'keeDee', 'ant'], ['સીડી', 'seeDee', 'stairs'], ['પીળું', 'peeLun', 'yellow'],
+  ['લીલું', 'leelun', 'green'], ['નીચે', 'neeche', 'below'], ['વિચાર', 'vichaar', 'thought'], ['નિશાળ', 'nishaaL', 'school'],
+  ['ચિત્ર', 'chitra', 'picture'], ['સૂરજ', 'sooraj', 'sun'], ['ખૂબ', 'khoob', 'very'], ['મૂળ', 'mooL', 'root'],
+  ['દુકાન', 'dukaan', 'shop'], ['મુખ', 'mukh', 'face'], ['ગુજરાત', 'gujaraat', 'Gujarat'],
+  ['નવું', 'navun', 'new (neuter)'], ['નવો', 'navo', 'new (masculine)'], ['તમારું', 'tamaarun', 'your (neuter)'],
+  ['મારાં', 'maaraan', 'my (plural neuter)'], ['સારાં', 'saaraan', 'good (plural neuter)'], ['સારો', 'saaro', 'good (masculine)'],
+  ['સારી', 'saaree', 'good (feminine)'], ['ઘરમાં', 'gharmaan', 'in the home'], ['ઘરનું', 'gharnun', 'of the home'],
+  ['શહેરમાં', 'shahermaan', 'in the city'], ['નહીં', 'naheen', 'not'], ['મોં', 'mon', 'mouth'], ['છોકરું', 'chhokarun', 'child'],
+  ['ઠંડું', 'ThanDun', 'cold (neuter)'], ['પાણી', 'paaNee', 'water'], ['છું', 'chhun', 'am']
 ]).map(function (w) { return { gu: w[0], roman: w[1], en: w[2] }; });

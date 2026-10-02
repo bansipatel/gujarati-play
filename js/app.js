@@ -165,7 +165,7 @@ GL.app = (function () {
         h('h2', null, 'Lesson ' + next.id + ': ' + next.title),
         h('p', { class: 'np-meta' }, next.blurb),
         h('div', { class: 'np-letters', lang: 'gu' }, next.items.map(function (id) { return h('span', { class: 'gu' }, GL.ui.glyphOf(byId(id))); })),
-        h('p', { class: 'np-meta' }, '5 new letters · about 4 minutes'),
+        h('p', { class: 'np-meta' }, next.cards ? 'Explainer lesson · about 5 minutes' : '5 new letters · about 4 minutes'),
         h('div', { class: 'np-foot' }, link('#/lesson/' + next.id, 'btn primary huge', [started ? 'Continue' : 'Start lesson', GL.ui.icon('arrow', 'sm')])),
         s.due >= 3 ? h('div', { class: 'np-due' }, GL.ui.icon('refresh', 'sm'), h('span', null, s.due + ' letters are ready for a refresh. '), link('#/play/quick', 'btn small ghost', 'Quick 5')) : null);
     } else {
@@ -246,12 +246,13 @@ GL.app = (function () {
       h('p', { class: 'lead' }, 'Finish a lesson to unlock the next one. Completed lessons can be replayed any time.'),
       h('div', { class: 'lesson-list' }, GL.lessons.map(function (l) {
         var done = store.isDone(l.id), open = store.isUnlocked(l.id), isNext = next && next.id === l.id;
-        return h('div', { class: 'lesson-row ' + (done ? 'done' : open ? 'open' : 'locked') + (isNext ? ' next' : '') },
+        var row = h('div', { class: 'lesson-row ' + (done ? 'done' : open ? 'open' : 'locked') + (isNext ? ' next' : '') },
           h('div', { class: 'lr-num' }, done ? GL.ui.icon('check') : (open ? String(l.id) : GL.ui.icon('lock'))),
           h('div', { class: 'lr-body' },
             h('div', { class: 'lr-letters', lang: 'gu' }, l.items.map(function (id) { return h('span', null, GL.ui.glyphOf(byId(id))); })),
             h('h3', null, 'Lesson ' + l.id + ': ' + l.title), h('p', null, l.blurb)),
           h('div', { class: 'lr-act' }, open ? link('#/lesson/' + l.id, 'btn small' + (done ? '' : ' primary'), done ? 'Replay' : 'Start') : null));
+        return l.part ? h('div', { class: 'part-group' }, h('div', { class: 'section-head part-head' }, h('h2', null, l.part), h('span', null, 'Opens after lesson 6. No new letters, just the patterns.')), row) : row;
       })));
   }
 
@@ -260,12 +261,28 @@ GL.app = (function () {
     var L = GL.lessonById(n);
     if (!L) return notFound();
     if (!store.isUnlocked(n)) {
-      return h('div', { class: 'card' }, h('h1', null, 'Not quite yet'), h('p', null, 'Finish lesson ' + (n - 1) + ' first, then this one opens up.'), link('#/lessons', 'btn primary', 'Back to lessons'));
+      return h('div', { class: 'card' }, h('h1', null, 'Not quite yet'), h('p', null, 'Finish lesson ' + (L.after || n - 1) + ' first, then this one opens up.'), link('#/lessons', 'btn primary', 'Back to lessons'));
     }
     var steps = [];
     if (L.intro) steps.push({ t: 'intro' });
     L.items.forEach(function (id) { steps.push({ t: 'learn', id: id }); });
+    (L.cards || []).forEach(function (c, k) { steps.push({ t: 'card', k: k }); });
     steps.push({ t: 'quiz' });
+
+    /* Explainer card (Part 2 lessons): a short idea plus real words to read. */
+    function conceptCard(k) {
+      var c = L.cards[k];
+      return h('div', { class: 'qcard concept' },
+        h('p', { class: 'label' }, L.title + ' · ' + (k + 1) + ' of ' + L.cards.length),
+        h('h2', null, c.title),
+        h('div', { class: 'cbody', html: c.body }),
+        c.rows ? h('div', { class: 'crows' }, c.rows.map(function (r) {
+          return h('div', { class: 'crow' },
+            h('span', { class: 'cg' }, r.hl ? GL.ui.highlighted(r.gu, r.hl) : gu(r.gu)),
+            h('span', { class: 'cm' }, GL.ui.hint(r.roman), r.note ? h('span', { class: 'cn' }, ' · ' + r.note) : null),
+            h('span', { class: 'ce' }, r.en || ''));
+        })) : null);
+    }
     var i = 0, box = h('div', { class: 'lesson-box' });
 
     /* Look-alikes that have already been taught (or are in this very lesson). */
@@ -312,6 +329,7 @@ GL.app = (function () {
       if (s.t === 'quiz') return startQuiz();
       var card;
       if (s.t === 'intro') card = h('div', { class: 'qcard' }, h('p', { class: 'label' }, 'The big idea'), h('h2', null, L.intro.title), h('p', { class: 'big-msg', html: L.intro.body }));
+      else if (s.t === 'card') card = conceptCard(s.k);
       else card = learnCard(s.id, L.items.indexOf(s.id));
       var learnSteps = steps.length - 1;
       box.appendChild(h('div', { class: 'session' },
@@ -328,7 +346,7 @@ GL.app = (function () {
 
     function startQuiz() {
       var pool = store.taughtIds().concat(L.items.filter(function (id) { return store.taughtIds().indexOf(id) === -1; }));
-      var qs = GL.games.build('lesson', pool, { focus: L.items });
+      var qs = L.quiz ? L.quiz.map(GL.games.conceptQ) : GL.games.build('lesson', pool, { focus: L.items });
       GL.games.run(box, qs, {
         exitHref: '#/lessons',
         onFinish: function (summary) {

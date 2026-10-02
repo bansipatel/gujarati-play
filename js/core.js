@@ -248,7 +248,10 @@ GL.store = (function () {
       } catch (e) { return false; }
     },
     isDone: function (n) { return !!state.completed[n]; },
-    isUnlocked: function (n) { return n === 1 || !!state.completed[n - 1]; },
+    isUnlocked: function (n) {
+      var L = GL.lessonById(n), need = L && L.after ? L.after : n - 1;
+      return n === 1 || !!state.completed[need];
+    },
     completeLesson: function (n) {
       var first = !state.completed[n];
       var c = state.completed[n] || { plays: 0 };

@@ -285,6 +285,19 @@ button.peek { font: inherit; font-size: .82rem; min-height: 44px; border: 1px da
 .gujlish .roman { font-size: 1.25rem; } .gujlish .arrow { color: var(--muted); } .gujlish .gu { font-size: 2.4rem; color: var(--glyph); }
 .say { color: var(--muted); font-size: .92rem; margin: .4rem 0; }
 
+/* explainer cards (Part 2 lessons) */
+.qcard.concept { padding: 1.4rem 1.2rem; }
+.qcard.concept h2 { font-size: 1.6rem; }
+.cbody { font-size: 1.08rem; } .cbody p { margin: .5rem 0; } .cbody ul { padding-left: 1.2rem; margin: .5rem 0; } .cbody li { margin: .3rem 0; } .cbody .small { font-size: .88rem; color: var(--muted); }
+.crows { display: grid; gap: .5rem; margin-top: 1rem; }
+@media (min-width: 700px) { .crows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.crow { display: grid; grid-template-columns: minmax(0, auto) 1fr; gap: 0 .9rem; align-items: baseline; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: .35rem .9rem .5rem; }
+.crow .cg { grid-row: span 2; font-size: 2rem; line-height: 1.5; color: var(--glyph); min-width: 3.2rem; }
+.crow .cg mark { background: var(--tint-gold); color: inherit; border-radius: 6px; padding: 0 .1em; }
+.crow .cm { font-weight: 700; color: var(--roman); font-size: 1.02rem; } .crow .cn { font-weight: 500; color: var(--muted); font-size: .88rem; }
+.crow .ce { color: var(--muted); font-size: .92rem; }
+.part-head { margin-top: 1.4rem; }
+
 /* ---------- Sessions ---------- */
 .session { max-width: 980px; margin: 0 auto; }
 .session-top { display: flex; align-items: center; gap: .75rem; margin-bottom: .9rem; }
