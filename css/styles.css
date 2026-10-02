@@ -122,6 +122,7 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1rem 1.2rem; color: var(-
 .hero-panel .label { color: rgba(255, 255, 255, .85); }
 .hero-panel h1 { font-size: clamp(2rem, 4.6vw, 3.2rem); color: #fff; margin-bottom: .6rem; max-width: 14ch; text-shadow: 0 2px 18px rgba(42, 24, 56, .35); }
 .hero-panel p { color: rgba(255, 255, 255, .95); max-width: 40ch; text-shadow: 0 1px 10px rgba(42, 24, 56, .4); }
+.hero-note { font-size: .88rem; margin: .4rem 0 0; max-width: 46ch; }
 .hero-panel .btn.ghost { color: #fff; border-color: rgba(255, 255, 255, .6); background: rgba(255, 255, 255, .12); }
 .hero-panel .btn.primary { background: #fff; color: var(--accent); box-shadow: none; }
 .next-panel { display: flex; flex-direction: column; gap: .2rem; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1.4rem; }
