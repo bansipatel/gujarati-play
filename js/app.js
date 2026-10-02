@@ -38,6 +38,20 @@ GL.app = (function () {
     var last = st.days.length ? st.days[st.days.length - 1] : null;
     var welcome = (started && last && last !== today_()) ? h('p', { class: 'muted' }, 'Welcome back. Everything you learned is still here.') : null;
 
+    // Private-code sync starts here: "Start playing" offers a code to save; "Continue with a code" brings progress back.
+    var syncOn = !!(GL.sync && GL.sync.available()), syncLinked = !!(GL.sync && GL.sync.linked());
+    var startHref0 = started ? '#/today' : '#/lesson/1';
+    var startBtn = h('a', { href: startHref0, class: 'btn primary huge', id: 'home-start', onclick: function (e) {
+      if (syncOn && !syncLinked && !syncAsked()) { e.preventDefault(); openCodeDialog('offer', startHref0); }
+    } }, 'Start playing');
+    var continueBtn = (syncOn && !syncLinked) ? h('button', { type: 'button', class: 'btn ghost', id: 'home-continue', onclick: function () { openCodeDialog('enter', '#/today'); } }, 'Continue with a code') : null;
+    var syncPromo = (syncOn && !syncLinked) ? h('div', { class: 'callout', id: 'sync-promo' },
+      h('h3', null, 'Pick up where you left off, on any device'),
+      h('p', null, 'Get a private code, save it, and enter it whenever you want to continue. No account or email needed.'),
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn small primary', id: 'home-getcode', onclick: function () { openCodeDialog('offer', null); } }, 'Get my private code'),
+        h('button', { type: 'button', class: 'btn small', id: 'home-havecode', onclick: function () { openCodeDialog('enter', '#/today'); } }, 'I have a code'))) : null;
+
     var nextPanel;
     if (next) {
       nextPanel = h('div', { class: 'next-panel' },
@@ -77,7 +91,7 @@ GL.app = (function () {
           h('p', { class: 'label' }, 'Gujarati, on paper'),
           h('h1', null, 'Read what you already say.'),
           h('p', null, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.'),
-          h('div', { class: 'row' }, link(started ? '#/today' : '#/lesson/1', 'btn primary huge', 'Start playing'), link('#/alphabet', 'btn ghost', 'Browse the alphabet'))),
+          h('div', { class: 'row' }, startBtn, continueBtn, link('#/alphabet', 'btn ghost', 'Browse the alphabet'))),
         nextPanel),
       h('ul', { class: 'statline' },
         h('li', null, h('b', null, String(st.points)), h('span', null, 'points')),
@@ -85,7 +99,7 @@ GL.app = (function () {
         h('li', null, h('b', null, s.learned + '/' + s.total), h('span', null, 'letters learned')),
         h('li', null, h('b', null, String(s.words)), h('span', null, 'words you can read')),
         h('li', null, h('b', null, String(s.days)), h('span', null, 'days played'))),
-      fade, strugglingBlock(),
+      syncPromo, fade, strugglingBlock(),
       h('div', { class: 'section-head' }, h('h2', null, 'Your letters'), h('span', null, s.mastered + ' feeling strong')),
       map,
       h('div', { class: 'legend-row' },
@@ -372,6 +386,62 @@ GL.app = (function () {
 
   /* ---------- Sync (cloud) ---------- */
   var revealCode = false, syncPaint = null;
+  var ASKED = 'gujaratiPlay.syncAsked';
+  function syncAsked() { try { return !!window.localStorage.getItem(ASKED); } catch (e) { return false; } }
+  function markAsked() { try { window.localStorage.setItem(ASKED, '1'); } catch (e) { /* ignore */ } }
+
+  /* The private-code dialog. modes: offer (new session) -> show (save your code) ; enter (continue with a code).
+     goHref is where to go afterwards (null = stay where you are). */
+  function openCodeDialog(mode, goHref) {
+    var dlg = document.getElementById('dlg');
+    var st = { mode: mode, code: null, msg: '', busy: false, cameFromOffer: mode === 'offer' };
+    function finish(href) {
+      dlg.close();
+      if (href) { if (location.hash === href) render(); else location.hash = href; } else render();
+    }
+    function paint() {
+      dlg.innerHTML = '';
+      var body = h('div', { class: 'dlg-body' });
+      if (st.mode === 'offer') {
+        body.appendChild(h('h2', { id: 'dlg-title' }, 'Save your progress with a private code'));
+        body.appendChild(h('p', null, 'No account or email. You get a code; save it, and enter it whenever you want to continue, on this device or another.'));
+        if (st.msg) body.appendChild(h('p', { class: 'muted', id: 'code-msg' }, st.msg));
+        body.appendChild(h('div', { class: 'row center' },
+          h('button', { type: 'button', class: 'btn primary', id: 'code-get', disabled: st.busy, onclick: function () {
+            st.busy = true; st.msg = 'Creating your code\u2026'; paint();
+            GL.sync.enable().then(function (code) { st.code = code; st.mode = 'show'; st.busy = false; st.msg = ''; markAsked(); revealCode = true; paint(); },
+              function () { st.busy = false; st.msg = 'Could not reach the cloud. Check your connection and try again, or skip for now.'; paint(); });
+          } }, 'Get my code'),
+          h('button', { type: 'button', class: 'btn', id: 'code-have', onclick: function () { st.mode = 'enter'; st.msg = ''; paint(); } }, 'I already have a code')));
+        body.appendChild(h('p', null, h('button', { type: 'button', class: 'btn small ghost', id: 'code-skip', onclick: function () { markAsked(); finish(goHref); } }, 'Skip for now')));
+      } else if (st.mode === 'show') {
+        body.appendChild(h('h2', { id: 'dlg-title' }, 'Your private code'));
+        body.appendChild(h('div', { class: 'sync-code', id: 'code-shown', 'aria-label': 'Your code ' + st.code }, st.code));
+        body.appendChild(h('div', { class: 'row center' }, h('button', { type: 'button', class: 'btn', id: 'code-copy', onclick: function () { copyText(st.code); } }, 'Copy code')));
+        body.appendChild(h('p', { class: 'note' }, 'Save this code now (Notes, a message to yourself). It is the only way to bring your progress back on another device, and anyone with it can see your progress, so keep it private. You can find it again in Settings on this device.'));
+        body.appendChild(h('div', { class: 'row center' }, h('button', { type: 'button', class: 'btn primary', id: 'code-saved', onclick: function () { finish(goHref); } }, goHref ? 'I\u2019ve saved it. Start' : 'I\u2019ve saved it')));
+      } else {
+        body.appendChild(h('h2', { id: 'dlg-title' }, 'Continue with your code'));
+        var input = h('input', { type: 'text', class: 'typed code-input', id: 'code-input', 'aria-label': 'Your private code', placeholder: 'ABCD-EFGH-JKMN-PQRS', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'go' });
+        var msg = h('p', { class: 'muted', id: 'code-msg', 'aria-live': 'polite' }, st.msg);
+        body.appendChild(h('p', null, 'Enter the code you saved to bring your progress back.'));
+        body.appendChild(h('form', { class: 'type-form', onsubmit: function (e) {
+          e.preventDefault(); msg.textContent = 'Connecting\u2026';
+          GL.sync.connect(input.value).then(function (r) { markAsked(); GL.ui.updateHud(); GL.ui.toast(r.changed ? 'Progress restored' : 'Connected'); revealCode = false; finish(goHref || '#/today'); },
+            function (err) { msg.textContent = err.message; });
+        } }, input, h('button', { type: 'submit', class: 'btn primary', id: 'code-connect' }, 'Continue')));
+        body.appendChild(msg);
+        body.appendChild(h('p', null, st.cameFromOffer
+          ? h('button', { type: 'button', class: 'btn small ghost', id: 'code-back', onclick: function () { st.mode = 'offer'; st.msg = ''; paint(); } }, 'Back')
+          : h('button', { type: 'button', class: 'btn small ghost', id: 'code-cancel', onclick: function () { dlg.close(); } }, 'Cancel')));
+      }
+      dlg.appendChild(body);
+      dlg.setAttribute('aria-labelledby', 'dlg-title');
+    }
+    paint();
+    if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+    var first = dlg.querySelector('input') || dlg.querySelector('.btn.primary'); if (first) first.focus();
+  }
   function ago(ts) {
     if (!ts) return 'never';
     var s = Math.round((Date.now() - ts) / 1000);

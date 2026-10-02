@@ -71,6 +71,8 @@ Sync is built in but stays hidden until you connect a Firebase project, so the s
 
 **How it works.** The app assigns each person a random 16-character code (like `K7QM-3XWD-9PAT-NB4R`, about 78 bits, no 0/O/1/I/L). Progress is saved to Firestore under a document named with the SHA-256 hash of that code, so the code itself never leaves the device. Entering the code on another device pulls the cloud copy and **merges** it with what is already there (nothing is lost): points keep the larger value, finished lessons and play days are combined, and for each letter the more recently practiced record wins. The app still works fully offline and syncs a few seconds after you stop making changes, and again when you reopen it.
 
+**Where people meet it.** On the home screen. Pressing **Start playing** for the first time offers a private code: "Get my code" shows it with a Copy button and a reminder to save it, and "I've saved it. Start" opens the first lesson. "Skip for now" continues without sync (and the offer is not repeated). A **Continue with a code** button on the home screen takes a saved code and restores progress on any device, then opens Today. A short "Pick up where you left off" note on the home screen offers the same until a device is linked. The code is always findable again in Settings, which also has Sync now, Stop syncing and Delete cloud copy.
+
 **Why assigned and not chosen.** The code is the only protection, so it has to be unguessable. Chosen codes collide and get guessed ("kalam123"). A random one cannot be browsed or guessed.
 
 **Setup (about 10 minutes, free Spark plan, no billing):**
@@ -91,7 +93,7 @@ Sync is built in but stays hidden until you connect a Firebase project, so the s
 - Merging is a sensible approximation, not perfect: if two devices practice the same letter at the same moment, counts take the larger value and the later record sets its strength.
 - "Reset all progress" resets this device and stops syncing it; the cloud copy is kept until you press "Delete cloud copy".
 - Free-plan limits (about 20,000 writes and 50,000 reads a day) are far above friend-scale use. If they were ever exceeded, Firebase would pause the service, not charge you.
-- Tested here against an in-memory fake of the Firestore REST API (`tests/sync-test.html`, 36 checks). The real rules and network path need to be tried against your actual project.
+- Tested here against an in-memory fake of the Firestore REST API (`tests/sync-test.html`, 36 checks, plus a real run against the live project and 20 checks of the home-screen flows). The real rules and network path need to be tried against your actual project.
 
 ## What's inside
 
