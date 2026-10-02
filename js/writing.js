@@ -147,7 +147,7 @@ GL.writing = (function () {
       refBox.innerHTML = '';
       refBox.appendChild(h('div', { class: 'bigglyph xl' }, gu(GL.ui.glyphOf(it))));
       refBox.appendChild(h('p', { class: 'sound' }, GL.ui.hint(it.roman) || h('span', { class: 'muted' }, 'Hint hidden')));
-      refBox.appendChild(h('p', { class: 'exword' }, GL.ui.highlighted(it.word.gu, it.word.hl), ' ', h('span', { class: 'en' }, it.word.en)));
+      refBox.appendChild(h('p', { class: 'refword' }, GL.ui.hint(it.word.roman), ' ', h('span', { class: 'en' }, it.word.en)));
       if (GL.store.taughtIds().indexOf(it.id) === -1) refBox.appendChild(h('p', { class: 'note' }, 'Coming up in lesson ' + GL.lessonOfItem[it.id] + '. A sneak peek is fine.'));
       ghost.textContent = GL.ui.glyphOf(it); ghost.hidden = !showGuide;
       size();
