@@ -54,7 +54,8 @@ GL.ui = (function () {
     var l = document.getElementById('hud-level'); if (l) l.textContent = 'Level ' + lv.n + ' \u00b7 ' + lv.title;
     var nm = document.getElementById('hud-name'), av = document.getElementById('hud-avatar');
     if (nm) { nm.textContent = name; nm.hidden = !name; }
-    if (av) { av.textContent = name ? initialOf(name) : ''; av.hidden = !name; }
+    if (av) av.textContent = name ? initialOf(name) : String(lv.n);
+    var fill = document.getElementById('hud-fill'); if (fill) fill.style.width = Math.round(lv.into / lv.size * 100) + '%';
     var hud = document.querySelector('.hud'); if (hud) hud.classList.toggle('has-name', !!name);
   }
   function initialOf(name) { var ch = Array.from(String(name).trim())[0] || ''; return ch.toUpperCase(); }
