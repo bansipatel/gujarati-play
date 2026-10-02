@@ -148,11 +148,11 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1rem 1.2rem; color: var(-
 @keyframes drift-b { to { transform: translate(-12%, 14%) scale(1.1); } }
 @keyframes drift-c { to { transform: translate(10%, -12%) scale(1.18); } }
 
-.orbit { --R: min(34vw, 290px); position: absolute; z-index: -2; left: calc(var(--R) * -.45); top: 50%; width: calc(var(--R) * 2); height: calc(var(--R) * 2); margin-top: calc(var(--R) * -1); pointer-events: none; animation: spin 110s linear infinite; }
-.orbit span { position: absolute; left: 50%; top: 50%; transform: rotate(var(--a)) translateY(calc(var(--R) * -1)); }
-.orbit b { display: block; font-family: var(--gu); font-weight: 700; font-size: clamp(1.8rem, 3.6vw, 2.8rem); line-height: 1; color: rgba(109, 40, 184, .15); transform: translate(-50%, -50%) rotate(calc(var(--a) * -1)); animation: spin-back 110s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes spin-back { from { transform: translate(-50%, -50%) rotate(calc(var(--a) * -1)); } to { transform: translate(-50%, -50%) rotate(calc(var(--a) * -1 - 360deg)); } }
+.edge-letters { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
+.edge-letters span { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%); font-family: var(--gu); font-weight: 700; font-size: clamp(1.3rem, 2.2vw, 1.8rem); line-height: 1; color: rgba(109, 40, 184, .2); animation: bob 7s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes bob { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 6px)); } }
+@media (max-width: 700px) { .edge-letters { display: none; } }
+body.fx-calm .edge-letters span { animation: none; }
 
 .sparkles { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
 .spark { position: absolute; display: block; opacity: .75; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); animation: twinkle 3.4s ease-in-out infinite; animation-delay: var(--d, 0s); }

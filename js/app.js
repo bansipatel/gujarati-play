@@ -66,9 +66,11 @@ GL.app = (function () {
           function () { openCodeDialog('make', function () { celebrateNext = true; render(); }); }, false, 2));
       }
     }
-    var orbit = h('div', { class: 'orbit', 'aria-hidden': 'true' },
-      ['\u0A95', '\u0A96', '\u0A97', '\u0A98', '\u0A9A', '\u0A9B', '\u0A9C', '\u0A9D', '\u0A9F', '\u0AA1', '\u0AA4', '\u0AA6'].map(function (g, i) {
-        var sp = h('span', { lang: 'gu' }, h('b', null, g)); sp.style.setProperty('--a', (i * 30) + 'deg'); return sp;
+    // background letters sit only in the empty margin around the card, never behind the text
+    var spots = [[8, 3.5], [28, 3], [48, 3.8], [68, 3], [88, 3.6], [14, 96], [34, 96.5], [54, 96], [74, 96.5], [92, 96], [1.6, 30], [1.6, 62], [98.2, 22], [98.2, 52], [98.2, 78]];
+    var orbit = h('div', { class: 'edge-letters', 'aria-hidden': 'true' },
+      ['ક', 'ખ', 'ગ', 'ઘ', 'ચ', 'છ', 'જ', 'ઝ', 'ટ', 'ડ', 'ત', 'દ', 'પ', 'બ', 'મ'].map(function (g, i) {
+        var sp = h('span', { lang: 'gu' }, g); sp.style.setProperty('--x', spots[i][0] + '%'); sp.style.setProperty('--y', spots[i][1] + '%'); sp.style.setProperty('--d', (i * -1.3) + 's'); return sp;
       }));
     return h('section', { class: 'landing' },
       h('div', { class: 'aurora', 'aria-hidden': 'true' }, h('i', { class: 'a1' }), h('i', { class: 'a2' }), h('i', { class: 'a3' }), h('i', { class: 'a4' })),

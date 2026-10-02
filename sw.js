@@ -1,5 +1,5 @@
 /* Offline cache. Bump VERSION whenever any file changes so devices pick up the update. */
-var VERSION = 'gp-v34';
+var VERSION = 'gp-v35';
 var CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
   'js/data/items.js', 'js/data/lessons.js', 'js/data/words.js',
