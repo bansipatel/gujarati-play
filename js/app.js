@@ -121,7 +121,7 @@ GL.app = (function () {
   }
 
   /* Same idea on the inner pages: letters only where there is no text, control or picture. */
-  var LETTER_ROUTES = { summary: 1, today: 1, lessons: 1, practice: 1, settings: 1 };
+  var LETTER_ROUTES = {};   // background letters are Home only
   function scatterPage() {
     var layer = main.querySelector('.page-letters');
     if (!layer) return;
@@ -649,7 +649,7 @@ GL.app = (function () {
     var card = h('section', { class: 'card sync-card' });
     function paint() {
       card.innerHTML = '';
-      card.appendChild(h('h2', null, 'Sync across devices'));
+      card.appendChild(hd('cloud', 'Sync across devices'));
       if (!GL.sync.available()) { card.appendChild(h('p', null, 'Sync needs a secure (https) page. Open the published site to use it.')); return; }
       if (GL.sync.linked()) {
         var code = GL.sync.code(), shown = revealCode ? code : code.replace(/[A-Z0-9]/g, '\u2022');
@@ -686,9 +686,10 @@ GL.app = (function () {
   }
 
   /* ---------- Settings ---------- */
+  function hd(ic, text) { return h('h2', null, h('span', { class: 'h-ic', 'aria-hidden': 'true' }, GL.ui.icon(ic)), text); }
   function nameCard() {
     var input = h('input', { type: 'text', class: 'typed name-input', id: 'settings-name', maxlength: '24', autocomplete: 'nickname', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Your name', placeholder: 'Your first name or a nickname', value: store.name(), enterkeyhint: 'done' });
-    return h('section', { class: 'card' }, h('h2', null, 'Your name'),
+    return h('section', { class: 'card' }, hd('pen', 'Your name'),
       h('p', null, 'Shown in the corner and in your greeting. It is saved with your progress, and with the cloud copy if you use a code. A nickname is fine, or leave it empty.'),
       h('form', { class: 'type-form', onsubmit: function (e) {
         e.preventDefault(); var n = store.setName(input.value); input.value = n; GL.ui.updateHud(); GL.ui.toast(n ? 'Saved, ' + n : 'Name removed');
@@ -714,24 +715,24 @@ GL.app = (function () {
       h('div', { class: 'settings-grid' },
         nameCard(),
         syncCard(),
-        h('section', { class: 'card' }, h('h2', null, 'Transliteration hints'),
+        h('section', { class: 'card' }, hd('book', 'Transliteration hints'),
           h('p', null, 'As you improve, hide the English-letter hints. Quiz answers still use sounds as choices.'),
           h('fieldset', null, h('legend', { class: 'sr' }, 'Hint display'),
             radio('show', 'Always show', 'hints appear next to letters and words'),
             radio('tap', 'Tap to reveal', 'a small button shows each hint when you want it'),
             radio('hide', 'Hide', 'read with no hints'))),
-        h('section', { class: 'card' }, h('h2', null, 'Effects'),
+        h('section', { class: 'card' }, hd('sliders', 'Effects'),
           h('p', null, 'Drifting color, a turning ring of letters, sparkles and soft ripples.'),
           h('fieldset', null, h('legend', { class: 'sr' }, 'Effects'),
             fxRadio('system', 'Follow my device', 'calmer if your device is set to reduce motion'),
             fxRadio('on', 'Always on', 'show them even if your device reduces motion'),
             fxRadio('off', 'Off', 'a quiet, still screen'))),
-        h('section', { class: 'card' }, h('h2', null, 'Audio'),
+        h('section', { class: 'card' }, hd('play', 'Audio'),
           h('label', { class: 'choice' }, h('input', { type: 'checkbox', checked: st.settings.speech, onchange: function (e) { st.settings.speech = e.target.checked; store.save(); } }), h('span', null, 'Offer “Hear it” buttons when a Gujarati voice is available')),
           voiceNote),
-        standalone ? null : h('section', { class: 'card' }, h('h2', null, 'Install on iPad or iPhone'),
+        standalone ? null : h('section', { class: 'card' }, hd('expand', 'Install on iPad or iPhone'),
           h('p', null, 'In Safari, tap the Share button, then “Add to Home Screen”. It opens full-screen like an app, works offline, and Safari is much less likely to clear your progress.')),
-        h('section', { class: 'card' }, h('h2', null, 'Back up your progress'),
+        h('section', { class: 'card' }, hd('key', 'Back up your progress'),
           h('p', null, 'Progress lives in this browser only. Copy the code below somewhere safe (Notes, email to yourself) and paste it back here on another device or after clearing data.'),
           h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn small', id: 'make-backup', onclick: function () {
             backup.value = store.exportCode();
@@ -744,7 +745,7 @@ GL.app = (function () {
             else GL.ui.toast('That code did not work');
           } }, 'Restore from code')),
           restore),
-        h('section', { class: 'card' }, h('h2', null, 'Start over'),
+        h('section', { class: 'card' }, hd('refresh', 'Start over'),
           h('p', null, store.isPersistent() ? 'Clears points, lessons and letter practice from this browser.' : 'This browser is blocking storage, so progress will be lost when you close the page.'),
           h('div', { class: 'row' }, link('#/lessons', 'btn', 'Replay lessons'), h('button', { type: 'button', class: 'btn danger', id: 'reset-btn', onclick: confirmReset }, 'Reset all progress')))));
   }

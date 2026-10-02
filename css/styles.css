@@ -379,11 +379,11 @@ a.badge:active .medal { transform: scale(.96); }
 /* ---------- Writing (iPad + Apple Pencil friendly) ---------- */
 .write-grid { display: grid; gap: 1.2rem; margin-top: .6rem; }
 @media (max-width: 899px) { .ref-card { display: grid; grid-template-columns: auto 1fr; align-items: center; text-align: left; gap: 0 1.2rem; padding: .8rem 1.2rem; } .ref-card .bigglyph.xl { grid-row: 1 / span 4; font-size: 6rem; } .ref-card { align-content: center; grid-auto-rows: min-content; } .ref-card p { margin-bottom: .3rem; } .ref-card .sound { text-align: left; margin: 0; } .ref-card .exword { font-size: 1.6rem; } }
-@media (min-width: 900px) { .write-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; gap: 1.6rem; } .write-view h1 { font-size: 1.7rem; } }
+@media (min-width: 900px) { .write-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; gap: 1.6rem; } }
 @media (min-width: 900px) and (max-height: 900px) { .write-view .lead { display: none; } .ref-card .bigglyph.xl { font-size: 7rem; } }
 .side .row { margin-top: 0; }
-.ref-card { background: linear-gradient(180deg, #fff9fc, #f3e8fb); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1rem; text-align: center; }
-.pad-wrap { position: relative; width: 100%; max-width: min(640px, 100%); aspect-ratio: 1 / 1; background-color: var(--blank); border: 3px solid var(--phone-edge); border-radius: var(--r-lg); overflow: hidden; margin: 0 auto;
+.ref-card { background: linear-gradient(180deg, rgba(255, 255, 255, .85), rgba(243, 232, 251, .8)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 12px 30px rgba(85, 39, 92, .10); border: 1px solid rgba(255, 255, 255, .9); border-radius: var(--r-lg); padding: 1rem; text-align: center; }
+.pad-wrap { position: relative; width: 100%; max-width: min(640px, 100%); aspect-ratio: 1 / 1; background-color: var(--blank); border: 3px solid #5b21b6; box-shadow: 0 18px 40px rgba(91, 33, 182, .18), 0 0 0 6px rgba(255, 255, 255, .6); border-radius: var(--r-lg); overflow: hidden; margin: 0 auto;
   background-image: linear-gradient(#efd9ea 1px, transparent 1px), linear-gradient(90deg, #efd9ea 1px, transparent 1px); background-size: 25% 25%; box-shadow: var(--shadow); }
 @media (min-width: 900px) { .pad-wrap { max-width: min(640px, calc(100vh - 9rem)); max-width: min(640px, calc(100dvh - 9rem)); } }
 .pad-wrap .guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -408,7 +408,7 @@ a.badge:active .medal { transform: scale(.96); }
 .shape-result .fine { font-size: .8rem; color: var(--muted); margin: .8rem 0 0; }
 
 /* ---------- Settings & dialogs ---------- */
-.settings-grid { display: grid; gap: 1rem; } @media (min-width: 900px) { .settings-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+.settings-grid { display: grid; gap: 1rem; } @media (min-width: 900px) { .settings-grid { grid-template-columns: 1fr 1fr; align-items: stretch; } }
 .choice { display: flex; gap: .8rem; align-items: flex-start; padding: .55rem 0; min-height: 52px; cursor: pointer; }
 .choice input { width: 26px; height: 26px; flex: none; margin-top: .1rem; accent-color: #5b21b6; }
 fieldset { border: 0; padding: 0; margin: 0; }
@@ -456,3 +456,19 @@ body.fx-calm .page-letters span { animation: none; }
 .sn-btn { font-weight: 700; font-size: .8rem; text-decoration: none; color: #fff; background: var(--grad); padding: .4rem .9rem; border-radius: 99px; box-shadow: 0 4px 10px rgba(126, 59, 199, .28); white-space: nowrap; }
 .sn-btn:hover { filter: brightness(1.06); }
 @media (max-width: 520px) { .save-note { border-radius: 22px; } }
+
+/* settings and writing share the themed look */
+.settings-grid { margin-top: 1.4rem; }
+.settings-grid .card { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 0; }
+.settings-grid .card > * { align-self: stretch; }
+.settings-grid .card > .btn, .settings-grid .card > button, .settings-grid .card > .row { align-self: flex-start; }
+.settings-grid form { display: grid; gap: .7rem; justify-items: stretch; } .settings-grid form .btn { justify-self: start; } .settings-grid .code-input { width: 100%; font-size: 1.05rem; }
+.settings-grid form input[type="text"]:not(.code-input) { width: 100%; }
+.h-ic { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 10px; background: var(--tint); color: var(--accent); margin-right: .55rem; vertical-align: -.35rem; }
+.h-ic .ic { width: 1.1rem; height: 1.1rem; }
+.settings-grid .card .btn:not(.primary):not(.danger) { border-color: #d9c4ef; color: var(--accent); }
+.write-view .side > .row .btn { border-color: #d9c4ef; color: var(--accent); }
+.write-view .lead { margin-bottom: 1rem; }
+.settings-grid .card > form { align-self: stretch; display: grid; justify-content: stretch; justify-items: stretch; margin: .6rem 0 0; }
+.settings-grid .card > form .btn { justify-self: start; }
+.settings-grid .name-input, .settings-grid .code-input { width: 100%; max-width: none; }
