@@ -330,5 +330,7 @@ dialog::backdrop { background: rgba(42, 24, 56, .5); }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes fall { 0% { transform: translate(0, -10%) rotate(0); opacity: 0; } 10% { opacity: .9; } 100% { transform: translate(-8px, 300px) rotate(360deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } .confetti { display: none; } }
-.refword { font-size: 1.35rem; margin: 0 0 .5rem; } .refword .roman { font-family: var(--serif); font-size: 1.6rem; }
-@media (max-width: 899px) { .ref-card .refword { font-size: 1.2rem; } .ref-card .refword .roman { font-size: 1.4rem; } }
+.refword-stack { margin: .2rem 0 .6rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+.refword-gu { font-family: var(--gu); font-size: 2.7rem; line-height: 1.35; color: var(--glyph); } .refword-gu .gu { font-size: inherit; }
+.refword { font-size: 1.15rem; margin: 0; color: var(--muted); } .refword .roman { font-family: var(--serif); font-size: 1.35rem; margin-right: .15rem; }
+@media (max-width: 899px) { .write-grid .ref-card { text-align: left; align-content: center; row-gap: .15rem; } .ref-card .note { text-align: left; margin: .4rem 0 0; } .refword-stack { border-top: 0; padding-top: 0; } .refword-gu { font-size: 2.1rem; } .ref-card .refword { font-size: 1.05rem; } .ref-card .refword .roman { font-size: 1.2rem; } }
