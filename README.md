@@ -31,7 +31,7 @@ The palette comes from the "Game Instruction Loop" slides: soft pink canvas, dar
 ## Made for iPad
 
 - **Layout adapts to the device:** bottom tabs on phones, a left navigation rail on iPad and desktop, and two-pane lessons and quizzes in landscape (big letter on the left, details on the right).
-- **Touch first:** large targets (76-96 px answer buttons on tablets), no hover-only behaviour, no double-tap zoom delays, and safe-area padding for the notch and home bar.
+- **Touch first:** large targets (76-96 px answer buttons on tablets), no hover-only behavior, no double-tap zoom delays, and safe-area padding for the notch and home bar.
 - **Apple Pencil writing pad:** pressure-sensitive strokes, palm rejection (rest your hand while using the Pencil), smooth coalesced input, and a larger pad on iPad. Finger and mouse work too.
 - **Install it:** in Safari tap Share, then "Add to Home Screen". It opens full-screen, works offline (service worker), and Safari is far less likely to clear your progress than for a normal tab.
 - **Back up progress:** Settings has a one-tap backup code you can paste into Notes or email to yourself, and restore on any device. Safari can clear site data it hasn't seen in a while, so this is worth doing.
@@ -80,6 +80,6 @@ Letters, vowel signs, sound values and the notes about ઇ/ઈ, ઉ/ઊ, ફ, �
 - **Not covered:** rare letters ઙ ઞ ઋ, loan-word signs ઑ ૉ, the visarga ઃ, and Gujarati digits.
 - **Fonts:** Google Fonts (Fraunces, Noto Sans Gujarati) load from the internet and are cached for offline use after the first visit; before that, the app falls back to system Gujarati fonts (Nirmala UI, Shruti, Gujarati Sangam MN).
 - **Updating:** after you change any file, bump `VERSION` in `sw.js` so installed copies pick up the update.
-- **Not tested on real hardware:** layouts were checked at iPad portrait/landscape and phone sizes in a desktop browser. Apple Pencil pressure and palm rejection follow the standard Pointer Events behaviour but I could not try them on an actual iPad.
+- **Not tested on real hardware:** layouts were checked at iPad portrait/landscape and phone sizes in a desktop browser. Apple Pencil pressure and palm rejection follow the standard Pointer Events behavior but I could not try them on an actual iPad.
 - **Progress** lives in one browser on one device; clearing site data erases it.
 - Transliteration of words follows everyday speech (final "a" silent), so it is a guide rather than a precise phonetic notation.

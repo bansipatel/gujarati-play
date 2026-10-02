@@ -60,7 +60,7 @@ GL.app = (function () {
       h('p', null, 'Most of your letters feel strong. Reading without the English-letter hints is how this turns into real reading.'),
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn small primary', onclick: function () { st.settings.hints = 'tap'; store.save(); GL.ui.toast('Hints are now tap-to-reveal'); render(); } }, 'Switch to tap-to-reveal'))) : null;
 
-    // Letter map: every letter in lesson order, coloured by how well you know it.
+    // Letter map: every letter in lesson order, colored by how well you know it.
     var order = []; GL.lessons.forEach(function (l) { order = order.concat(l.items); });
     var taughtSet = {}; s.taught.forEach(function (id) { taughtSet[id] = 1; });
     var map = h('div', { class: 'lettermap', role: 'group', 'aria-label': 'All letters' }, order.map(function (id) {
@@ -106,7 +106,7 @@ GL.app = (function () {
     if (next) rows.push({ t: 'Lesson ' + next.id + ': ' + next.title, d: next.blurb, href: '#/lesson/' + next.id, b: 'Start lesson' });
     else rows.push({ t: 'Every lesson finished', d: 'Replay any lesson, or keep your skills sharp with the games.', href: '#/lessons', b: 'See lessons' });
     var wl = struggling[0] || (s.taught.length ? s.taught[s.taught.length - 1] : null);
-    if (wl) rows.push({ t: 'Write a letter', d: 'Optional. Practise ' + GL.ui.glyphOf(byId(wl)) + ' on the drawing pad.', href: '#/write/' + encodeURIComponent(wl), b: 'Open pad' });
+    if (wl) rows.push({ t: 'Write a letter', d: 'Optional. Practice ' + GL.ui.glyphOf(byId(wl)) + ' on the drawing pad.', href: '#/write/' + encodeURIComponent(wl), b: 'Open pad' });
     return h('div', null,
       h('h1', null, 'Your five minutes'),
       h('p', { class: 'lead' }, 'Do one, two or all three. Whatever fits today is the right amount.'),
@@ -181,7 +181,7 @@ GL.app = (function () {
             h('p', { class: 'say' }, 'Say it out loud, then point at the highlighted letter.'),
             GL.ui.speakBtn(w.gu)),
           compareBox(it),
-          h('div', { class: 'dsec' }, link('#/write/' + encodeURIComponent(it.id), 'btn small', [GL.ui.icon('pen', 'sm'), 'Practise writing it']))));
+          h('div', { class: 'dsec' }, link('#/write/' + encodeURIComponent(it.id), 'btn small', [GL.ui.icon('pen', 'sm'), 'Practice writing it']))));
     }
 
     function render() {
@@ -333,7 +333,7 @@ GL.app = (function () {
     var taught = store.taughtIds();
     return h('div', null,
       h('h1', null, 'Alphabet'),
-      h('p', { class: 'lead' }, 'Tap any letter for details. A tick means you have learned it; dashed tiles are still ahead.'),
+      h('p', { class: 'lead' }, 'Tap any letter for details. A checkmark means you have learned it; dashed tiles are still ahead.'),
       guide(),
       GL.groups.map(function (g) {
         return h('section', { class: 'alpha-group' }, h('h2', null, g.title), h('p', { class: 'muted' }, g.sub),

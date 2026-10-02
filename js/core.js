@@ -248,7 +248,7 @@ GL.store = (function () {
   return api;
 })();
 
-/* Weighted random pick that favours weaker letters. Returns `n` ids (repeats only if the pool is small). */
+/* Weighted random pick that favors weaker letters. Returns `n` ids (repeats only if the pool is small). */
 GL.pickItems = function (pool, n, opts) {
   opts = opts || {};
   var focus = opts.focus || [];

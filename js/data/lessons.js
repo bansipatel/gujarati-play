@@ -56,7 +56,7 @@ GL.lessons = [
     items: ['ટ', 'ઠ', 'ડ', 'ઢ', 'ણ']
   },
   {
-    id: 10, title: 'Everyday favourites',
+    id: 10, title: 'Everyday favorites',
     blurb: 'Everyday words like દૂધ, ફૂલ and શહેર.',
     items: ['થ', 'દ', 'ધ', 'ફ', 'શ']
   },

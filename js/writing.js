@@ -5,7 +5,7 @@ window.GL = window.GL || {};
 
 GL.writing = (function () {
   var h = GL.ui.h, gu = GL.ui.gu;
-  var practised = {}; // ids that already earned the small practice bonus this visit
+  var practiced = {}; // ids that already earned the small practice bonus this visit
 
   function view(root, startId) {
     var items = GL.items;
@@ -13,7 +13,7 @@ GL.writing = (function () {
     var strokes = [], drawing = null, activeId = null, penUntil = 0, showGuide = true;
 
     var refBox = h('div', { class: 'ref-card' });
-    var select = h('select', { id: 'letter-select', 'aria-label': 'Choose a letter to practise', onchange: function () { go(+select.value); } });
+    var select = h('select', { id: 'letter-select', 'aria-label': 'Choose a letter to practice', onchange: function () { go(+select.value); } });
     GL.groups.forEach(function (g) {
       var og = h('optgroup', { label: g.title.split(' · ')[0] });
       items.forEach(function (it, i) {
@@ -38,9 +38,9 @@ GL.writing = (function () {
     } }, 'Faint guide: on');
     var doneBtn = h('button', { type: 'button', class: 'btn primary', onclick: function () {
       var id = items[cur].id;
-      if (!practised[id]) { practised[id] = 1; GL.ui.played(); GL.ui.award(3, 'Practice logged'); }
+      if (!practiced[id]) { practiced[id] = 1; GL.ui.played(); GL.ui.award(3, 'Practice logged'); }
       else GL.ui.toast('Already logged. Keep going.');
-    } }, 'I practised it');
+    } }, 'I practiced it');
     var status = h('p', { class: 'muted', 'aria-live': 'polite', id: 'stroke-count' });
 
     function size() {
