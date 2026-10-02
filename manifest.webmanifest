@@ -1,6 +1,6 @@
 {
-  "name": "ગુજરાતી Play",
-  "short_name": "Gujarati Play",
+  "name": "અક્ષર Akshar",
+  "short_name": "Akshar",
   "description": "A short daily game for Gujarati speakers learning to read and write the script.",
   "start_url": "./",
   "scope": "./",

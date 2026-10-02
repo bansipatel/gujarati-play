@@ -1,4 +1,4 @@
-/* ગુજરાતી Play
+/* Akshar
    Palette from the Game Instruction Loop slides (soft pink canvas, dark phone frames, purple→orange gradient),
    used with restraint: gradient only on primary actions, the hero and the game labels.
    Layout: phone = bottom tabs; iPad/desktop = left rail, two-pane lessons and quizzes. */
@@ -156,13 +156,18 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1rem 1.2rem; color: var(-
 .landing-grid { display: grid; gap: 2rem; align-items: center; }
 @media (min-width: 900px) { .landing-grid { grid-template-columns: 1.05fr 1fr; gap: 3rem; } }
 .landing-copy > * { animation: rise .8s cubic-bezier(.2, .8, .2, 1) both; }
-.landing-copy > :nth-child(2) { animation-delay: .1s; } .landing-copy > :nth-child(3) { animation-delay: .2s; } .landing-copy > :nth-child(4) { animation-delay: .3s; }
-.brandmark { margin: 0 0 .2rem; display: flex; flex-direction: column; line-height: 1; font-weight: 700; }
-.gtext { font-size: clamp(3.6rem, 10vw, 6.6rem); padding: .06em 0 .16em; color: #6d28b8; background: linear-gradient(110deg, #6d28b8 0%, #a64a90 48%, #c2570f 100%); background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: sheen 9s ease-in-out infinite; }
+.landing-copy > :nth-child(2) { animation-delay: .1s; } .landing-copy > :nth-child(3) { animation-delay: .2s; } .landing-copy > :nth-child(4) { animation-delay: .3s; } .landing-copy > :nth-child(5) { animation-delay: .4s; } .landing-copy > :nth-child(6) { animation-delay: .5s; }
+.brandmark { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; line-height: 1; font-weight: 700; }
+.gtext { font-family: "Baloo Bhai 2", var(--gu); font-weight: 800; font-size: clamp(4.4rem, 13vw, 8.4rem); line-height: 1.12; padding: .02em .08em .1em 0; letter-spacing: -.01em; color: #6d28b8; background: linear-gradient(110deg, #6d28b8 0%, #a64a90 48%, #d4631a 100%); background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 10px 18px rgba(126, 59, 199, .18)); animation: sheen 9s ease-in-out infinite; }
 @keyframes sheen { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-.ptext { font-family: var(--serif); font-size: clamp(2rem, 5.2vw, 3.4rem); letter-spacing: .06em; color: var(--ink); margin-top: -.15em; }
-.landing-tag { font-family: var(--serif); font-size: clamp(1.3rem, 2.6vw, 1.7rem); color: var(--ink); margin: .9rem 0 .4rem; }
-.landing-sub { color: var(--muted); max-width: 40ch; margin: 0; }
+.ptext { display: flex; align-items: center; gap: .9rem; font-family: var(--serif); font-weight: 500; font-size: clamp(.95rem, 2vw, 1.15rem); letter-spacing: .5em; text-transform: uppercase; color: var(--ink); margin-top: -.2em; }
+.ptext::before { content: ""; width: 2.6rem; height: 2px; border-radius: 2px; background: var(--grad); }
+.landing-mean { margin: .7rem 0 0; color: var(--muted); font-size: .92rem; }
+.landing-tag { font-family: var(--serif); font-weight: 500; font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; letter-spacing: -.015em; color: var(--ink); margin: 1.1rem 0 .6rem; }
+.landing-tag em { font-style: italic; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; padding-right: .08em; }
+.landing-sub { color: var(--muted); max-width: 42ch; margin: 0; }
+.feats { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 1.1rem 0 0; }
+.feats li { font-size: .82rem; font-weight: 600; color: var(--accent); background: rgba(255, 255, 255, .7); border: 1px solid rgba(255, 255, 255, .9); border-radius: 99px; padding: .3rem .8rem; box-shadow: 0 4px 12px rgba(85, 39, 92, .08); }
 
 .menu { display: grid; gap: .8rem; }
 .menu-btn { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; text-align: left; font: inherit; width: 100%; min-height: 84px; padding: 1rem 1.2rem; color: var(--ink); cursor: pointer;
@@ -338,10 +343,10 @@ button.peek { font: inherit; font-size: .82rem; min-height: 44px; border: 1px da
 .badge { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; text-decoration: none; color: inherit; position: relative; }
 .badge-text { font-size: .82rem; color: var(--muted); max-width: 22ch; }
 .medal { --c1: #7e3bc7; --c2: #bc69a6; position: relative; display: grid; place-items: center; width: 136px; height: 136px; filter: drop-shadow(0 14px 18px rgba(85, 39, 92, .24)); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
-.medal.theme-words { --c1: #d2531c; --c2: #f4a64d; } .medal.theme-write { --c1: #c98a0a; --c2: #ffd166; }
+.medal.theme-ach { --c1: #b8336a; --c2: #f08a7e; } .medal.theme-words { --c1: #d2531c; --c2: #f4a64d; } .medal.theme-write { --c1: #c98a0a; --c2: #ffd166; }
 .medal svg.rosette { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .medal-glyph { position: relative; z-index: 1; font-size: 2.7rem; line-height: 1; color: #fff; text-shadow: 0 2px 10px rgba(42, 24, 56, .4); }
-.medal-glyph.long { font-size: 1.9rem; }
+.medal-glyph.long { font-size: 1.9rem; } .medal-glyph.xlong { font-size: 1.5rem; }
 .medal-lock { position: relative; z-index: 1; width: 2.3rem; height: 2.3rem; color: #fff; stroke-width: 2; filter: drop-shadow(0 2px 6px rgba(42, 24, 56, .35)); }
 @media (hover: hover) { a.badge:hover .medal { transform: translateY(-5px) rotate(-3deg) scale(1.04); } }
 a.badge:active .medal { transform: scale(.96); }

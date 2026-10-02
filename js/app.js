@@ -75,10 +75,12 @@ GL.app = (function () {
       orbit, GL.ui.sparkles(9),
       h('div', { class: 'landing-grid' },
         h('div', { class: 'landing-copy' },
-          h('p', { class: 'label' }, store.name() ? (hasLocal ? 'Welcome back, ' : 'Hello, ') + store.name() : 'Gujarati, on paper'),
-          h('h1', { class: 'brandmark' }, h('span', { class: 'gu gtext', lang: 'gu' }, '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0'), h('span', { class: 'ptext' }, 'Play')),
-          h('p', { class: 'landing-tag' }, 'Read what you already say.'),
-          h('p', { class: 'landing-sub' }, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.')),
+          h('p', { class: 'label' }, store.name() ? (hasLocal ? 'Welcome back, ' : 'Hello, ') + store.name() : 'Learn to read Gujarati'),
+          h('h1', { class: 'brandmark' }, h('span', { class: 'gu gtext', lang: 'gu' }, '\u0A85\u0A95\u0ACD\u0AB7\u0AB0'), h('span', { class: 'ptext' }, 'Akshar')),
+          h('p', { class: 'landing-mean' }, 'Akshar means \u201Cletter.\u201D'),
+          h('p', { class: 'landing-tag' }, 'You already speak it. ', h('em', null, 'Now read it.')),
+          h('p', { class: 'landing-sub' }, 'Five letters at a time, starting from words you already know. Then games, a writing pad, and reviews that bring back whatever slipped.'),
+          h('ul', { class: 'feats', 'aria-label': 'What is inside' }, ['Short lessons', 'Games and flashcards', 'Writing pad'].map(function (t) { return h('li', null, t); }))),
         h('div', { class: 'menu' }, opts,
           h('p', { class: 'title-foot' }, syncOn ? 'Codes are private and need no account or email.' : 'Your progress is saved on this device.'))));
   }
@@ -311,6 +313,24 @@ GL.app = (function () {
     { g: 'Words and spelling', id: 'build', name: 'Word Builder', tag: 'Building', shot: '\u0A9F\u0ACB\u0AAA\u0AC0', theme: 'words', href: '#/play/build', need: 'words', text: 'Build words from letter and sign tiles.' },
     { g: 'Writing', id: 'write', name: 'Writing Pad', tag: 'Writing', shot: '\u0A95', theme: 'write', href: '#/write', need: 'free', text: 'Copy big letters. Works with Apple Pencil.' }
   ];
+  var ACH = [
+    { id: 'a-first', name: 'First Steps', tag: 'Milestone', shot: '\u0AE7', req: 'Finish your first lesson.', text: 'You finished a lesson.', test: function (s) { return s.lessons >= 1; } },
+    { id: 'a-ten', name: 'Ten Letters', tag: 'Milestone', shot: '\u0AE7\u0AE6', req: 'Learn 10 letters.', text: 'Ten letters learned.', test: function (s) { return s.learned >= 10; } },
+    { id: 'a-twenty', name: 'Twenty Letters', tag: 'Milestone', shot: '\u0AE8\u0AE6', req: 'Learn 20 letters.', text: 'Twenty letters learned.', test: function (s) { return s.learned >= 20; } },
+    { id: 'a-all', name: 'Whole Alphabet', tag: 'Milestone', shot: '\u0A85', req: 'Learn every letter.', text: 'Every letter learned.', test: function (s) { return s.learned >= s.total; } },
+    { id: 'a-words', name: 'Word Collector', tag: 'Words', shot: '\u0AB6\u0AAC\u0ACD\u0AA6', req: 'Learn enough letters to read 10 words.', text: 'Ten words you can read.', test: function (s) { return s.words >= 10; } },
+    { id: 'a-words25', name: 'Word Hoard', tag: 'Words', shot: '\u0AB6\u0AAC\u0ACD\u0AA6\u0ACB', req: 'Learn enough letters to read 25 words.', text: 'Twenty-five words you can read.', test: function (s) { return s.words >= 25; } },
+    { id: 'a-solid5', name: 'Solid Five', tag: 'Mastery', shot: '\u0AEB', req: 'Get 5 letters to feel solid.', text: 'Five letters you know well.', test: function (s) { return s.mastered >= 5; } },
+    { id: 'a-solid15', name: 'Fifteen Strong', tag: 'Mastery', shot: '\u0AE7\u0AEB', req: 'Get 15 letters to feel solid.', text: 'Fifteen letters you know well.', test: function (s) { return s.mastered >= 15; } },
+    { id: 'a-days3', name: 'Three Days', tag: 'Habit', shot: '\u0AE9', req: 'Practice on 3 different days.', text: 'Back for a third day.', test: function (s) { return s.days >= 3; } },
+    { id: 'a-days7', name: 'A Full Week', tag: 'Habit', shot: '\u0AED', req: 'Practice on 7 different days.', text: 'Seven days of practice.', test: function (s) { return s.days >= 7; } },
+    { id: 'a-p100', name: '100 Points', tag: 'Points', shot: '\u0AE7\u0AE6\u0AE6', req: 'Earn 100 points.', text: 'A hundred points.', test: function (s, st) { return st.points >= 100; } },
+    { id: 'a-p500', name: '500 Points', tag: 'Points', shot: '\u0AEB\u0AE6\u0AE6', req: 'Earn 500 points.', text: 'Five hundred points.', test: function (s, st) { return st.points >= 500; } },
+    { id: 'a-p1000', name: '1,000 Points', tag: 'Points', shot: '\u0AE7\u0AE6\u0AE6\u0AE6', req: 'Earn 1,000 points.', text: 'A thousand points.', test: function (s, st) { return st.points >= 1000; } },
+    { id: 'a-course', name: 'Course Complete', tag: 'Finish', shot: '\u0AAA\u0AC2\u0AB0\u0ACD\u0AA3', req: 'Finish every lesson.', text: 'Every lesson finished.', test: function (s) { return s.lessons >= GL.lessons.length; } }
+  ];
+  ACH.forEach(function (a) { a.g = 'Milestones'; a.theme = 'ach'; a.need = 'ach'; });
+  var ALL = GAMES.concat(ACH);
   var WHY = { letters: 'Finish lesson 1 to unlock.', words: 'Finish lessons 1 and 2 to unlock.', spell: 'Learn a few look-alike letters, like \u0AA8 and \u0AA3, to unlock.', find: 'Finish lesson 2 to unlock.' };
 
   /* Which badge requirements are met right now. */
@@ -322,11 +342,12 @@ GL.app = (function () {
       find: s.words >= 4 && GL.games.build('find', pool, { count: 3 }).length >= 3
     };
   }
+  function isOpen(g, av, s, st) { return !!((st.badges && st.badges[g.id]) || (g.test ? g.test(s, st) : av[g.need])); }
   /* Record every badge whose requirement is now met. Returns the ones unlocked just now (the free one never counts as new). */
   function unlockBadges() {
-    var av = badgeAvail(), fresh = [];
-    GAMES.forEach(function (g) {
-      if (av[g.need] && store.unlockBadge(g.id)) { if (g.need === 'free') store.markBadgeSeen([g.id]); else fresh.push(g); }
+    var av = badgeAvail(), s = stats(), st = store.state(), fresh = [];
+    ALL.forEach(function (g) {
+      if (isOpen(g, av, s, st) && store.unlockBadge(g.id)) { if (g.need === 'free') store.markBadgeSeen([g.id]); else fresh.push(g); }
     });
     return fresh;
   }
@@ -354,29 +375,30 @@ GL.app = (function () {
 
   function badge(g, open, fresh) {
     var medal = h('span', { class: 'medal theme-' + g.theme }, rosette(),
-      open ? h('span', { class: 'medal-glyph gu' + (Array.from(g.shot).length > 2 ? ' long' : ''), lang: 'gu' }, g.shot) : GL.ui.icon('lock', 'medal-lock'),
+      open ? h('span', { class: 'medal-glyph gu' + (Array.from(g.shot).length > 3 ? ' xlong' : Array.from(g.shot).length > 2 ? ' long' : ''), lang: 'gu' }, g.shot) : GL.ui.icon('lock', 'medal-lock'),
       fresh ? h('span', { class: 'medal-new' }, 'New') : null);
-    var label = h('span', { class: 'label-pill' }, g.name + ' - ' + g.tag);
-    var text = h('span', { class: 'badge-text' }, open ? g.text : 'Locked. ' + WHY[g.need]);
+    var label = h('span', { class: 'label-pill' }, g.tag === 'Milestone' ? g.name : g.name + ' - ' + g.tag);
+    var why = g.req || WHY[g.need];
+    var text = h('span', { class: 'badge-text' }, open ? g.text : 'Locked. ' + why);
     if (open) return h('a', { href: g.href, class: 'badge' + (fresh ? ' fresh' : ''), id: 'badge-' + g.id, 'aria-label': 'Play ' + g.name + (fresh ? ' (new badge)' : '') }, medal, label, text);
-    return h('div', { class: 'badge locked', id: 'badge-' + g.id, role: 'group', 'aria-label': g.name + ', locked. ' + WHY[g.need] }, medal, label, text);
+    return h('div', { class: 'badge locked', id: 'badge-' + g.id, role: 'group', 'aria-label': g.name + ', locked. ' + why }, medal, label, text);
   }
 
   function practice() {
-    var av = badgeAvail();
+    var av = badgeAvail(), sx = stats(), stx = store.state();
     unlockBadges();
     var seen = store.state().badgeSeen || {}, freshIds = [], freshNames = [], openCount = 0;
     var groups = [];
-    GAMES.forEach(function (g) { if (groups.indexOf(g.g) === -1) groups.push(g.g); if (av[g.need]) openCount++; });
+    ALL.forEach(function (g) { if (groups.indexOf(g.g) === -1) groups.push(g.g); if (isOpen(g, av, sx, stx)) openCount++; });
     var page = h('div', null,
       h('h1', null, 'Practice'),
-      h('p', { class: 'lead' }, 'Each game is a badge. They unlock as you learn, and they only use letters and words you have already learned.'),
-      h('p', { class: 'badge-count', id: 'badge-count' }, h('b', null, openCount + ' of ' + GAMES.length), ' badges unlocked'),
+      h('p', { class: 'lead' }, 'Each game is a badge, and so are your milestones. They unlock as you learn, and games only use letters and words you have already learned.'),
+      h('p', { class: 'badge-count', id: 'badge-count' }, h('b', null, openCount + ' of ' + ALL.length), ' badges unlocked'),
       strugglingBlock(),
       groups.map(function (gn) {
         return h('section', null, h('div', { class: 'group-head' }, h('h2', null, gn)),
-          h('div', { class: 'badge-grid' }, GAMES.filter(function (g) { return g.g === gn; }).map(function (g) {
-            var open = av[g.need], fresh = open && g.need !== 'free' && !seen[g.id];
+          h('div', { class: 'badge-grid' }, ALL.filter(function (g) { return g.g === gn; }).map(function (g) {
+            var open = isOpen(g, av, sx, stx), fresh = open && g.need !== 'free' && !seen[g.id];
             if (fresh) { freshIds.push(g.id); freshNames.push(g.name); }
             return badge(g, open, fresh);
           })));
@@ -711,7 +733,7 @@ GL.app = (function () {
     }
     main.appendChild(node);
     if (celebrateNext && (route === '' || route === 'summary')) { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel, .menu'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + Math.min(b.height / 2, 220)]; }); }
-    document.title = (titles[route] || 'Play') + ' · ગુજરાતી Play';
+    document.title = (titles[route] || 'Play') + ' · Akshar';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
       var r = a.getAttribute('data-route'), on = r === route || (route === 'today' && r === '') || ((route === 'play' || route === 'flash') && r === 'practice') || (route === 'lesson' && r === 'lessons');
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');

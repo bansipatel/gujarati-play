@@ -1,4 +1,4 @@
-# ગુજરાતી Play
+# અક્ષર Akshar
 
 A playful, no-build website for Gujarati speakers who want to learn to **read and write** the script, five minutes a day. Plain HTML, CSS and JavaScript — no frameworks, no installs.
 
@@ -32,7 +32,7 @@ The landing page aims for calm and polish rather than noise: a slowly drifting w
 
 The palette comes from the "Game Instruction Loop" slides: soft pink canvas, dark ink text, and the purple-to-orange gradient. It is used with restraint: the gradient appears only on primary actions, the hero panel and the game labels. Everything else is quiet: serif headings (Fraunces), system sans text, one consistent line-icon set instead of emoji, hairline borders, and plain-spoken feedback ("Right.", "Not that one.") instead of generic cheering. Motion is switched off for people who prefer reduced motion.
 
-**Practice badges.** Each game on the Practice page is a medal badge. It shows a lock and what is needed until the requirement is met (finish lesson 1 for the letter games, lessons 1 and 2 for the word games, a few look-alike letters for Spelling Check). When it unlocks it gets a "New" marker, a small burst and a toast, and the lesson-complete card names it. The Writing Pad badge is open from the start. Unlocks are saved with the progress, never re-locked, and merge across devices (unlocked on either device counts).
+**Practice badges.** Each game on the Practice page is a medal badge, and a Milestones group adds 14 more (first lesson, 10 and 20 letters, whole alphabet, words read, letters mastered, days practiced, points, course complete) numbered in Gujarati digits. It shows a lock and what is needed until the requirement is met (finish lesson 1 for the letter games, lessons 1 and 2 for the word games, a few look-alike letters for Spelling Check). When it unlocks it gets a "New" marker, a small burst and a toast, and the lesson-complete card names it. The Writing Pad badge is open from the start. Unlocks are saved with the progress, never re-locked, and merge across devices (unlocked on either device counts).
 
 ## Made for iPad
 
