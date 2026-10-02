@@ -59,7 +59,11 @@ button { -webkit-user-select: none; user-select: none; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: calc(.7rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) .4rem calc(1rem + env(safe-area-inset-left)); max-width: 1180px; margin: 0 auto; }
 .wordmark { font-family: var(--serif); font-weight: 700; font-size: 1.3rem; color: var(--ink); text-decoration: none; }
 .wordmark .gu { font-weight: 600; color: var(--accent); }
-.hud { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; font-size: .8rem; color: var(--muted); margin-left: auto; }
+.hud { display: flex; flex-direction: row; align-items: center; gap: .65rem; line-height: 1.2; font-size: .8rem; color: var(--muted); margin-left: auto; }
+.hud-text { display: flex; flex-direction: column; align-items: flex-end; }
+.hud-name { font-weight: 700; font-size: 1rem; color: var(--ink); max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: grid; place-items: center; background: var(--grad); color: #fff; font-family: var(--serif); font-weight: 700; font-size: 1.2rem; box-shadow: 0 6px 16px rgba(126, 59, 199, .28), inset 0 0 0 2px rgba(255, 255, 255, .55); flex: none; }
+.hud.has-name .pts { font-size: .85rem; font-weight: 600; color: var(--muted); }
 .hud .pts { font-weight: 700; font-size: 1rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: .25rem calc(.25rem + env(safe-area-inset-right)) calc(.25rem + env(safe-area-inset-bottom)) calc(.25rem + env(safe-area-inset-left)); }
 nav .brand { display: none; }
@@ -413,3 +417,8 @@ body.fx-calm *, body.fx-calm *::before, body.fx-calm *::after { transition: none
 @media (max-width: 899px) { .write-grid .ref-card { text-align: left; align-content: center; row-gap: .15rem; } .ref-card .note { text-align: left; margin: .4rem 0 0; } .refword-stack { border-top: 0; padding-top: 0; } .refword-gu { font-size: 2.1rem; } .ref-card .refword { font-size: 1.05rem; } .ref-card .refword .roman { font-size: 1.2rem; } }
 
 @media (max-width: 767px) { nav a { font-size: .6rem; } nav a .ic { width: 1.3rem; height: 1.3rem; } }
+
+.name-field { display: grid; gap: .3rem; text-align: left; margin: .8rem 0; }
+.name-field .label { margin: 0; }
+.name-input { width: 100%; max-width: none; text-align: left; font-size: 1.1rem; }
+.field-note { font-size: .8rem; color: var(--muted); }

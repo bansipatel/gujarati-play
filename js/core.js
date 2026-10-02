@@ -144,7 +144,7 @@ GL.store = (function () {
   var persistent = true;
 
   function fresh() {
-    return { v: 1, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true, effects: 'system' } };
+    return { v: 1, name: '', nameAt: 0, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true, effects: 'system' } };
   }
   function load() {
     var raw = null;
@@ -173,6 +173,7 @@ GL.store = (function () {
      Returns true if anything here changed. */
   function mergeInto(a, b) {
     var changed = false;
+    if ((b.nameAt || 0) > (a.nameAt || 0)) { a.name = b.name || ''; a.nameAt = b.nameAt; changed = true; }   // the most recently edited name wins
     if ((b.points || 0) > a.points) { a.points = b.points; changed = true; }
     (b.days || []).forEach(function (d) { if (a.days.indexOf(d) === -1) { a.days.push(d); changed = true; } });
     a.days.sort();
@@ -208,6 +209,14 @@ GL.store = (function () {
     isPersistent: function () { return persistent; },
     save: save,
     /* A copy of all progress, for cloud sync. */
+    /* The learner's name, shown in the corner and in greetings. Saved with progress and synced with it. */
+    name: function () { return state.name || ''; },
+    setName: function (n) {
+      var clean = String(n || '').replace(/[\u0000-\u001F<>]/g, ' ').replace(/\s+/g, ' ').trim();
+      clean = Array.from(clean).slice(0, 24).join('');
+      if (clean === (state.name || '')) return clean;
+      state.name = clean; state.nameAt = Date.now(); save(); return clean;
+    },
     snapshot: function () { return JSON.parse(JSON.stringify(state)); },
     mergeRemote: function (remote) {
       if (!remote || remote.v !== 1 || typeof remote.points !== 'number' || typeof remote.completed !== 'object') return false;

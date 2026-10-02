@@ -75,7 +75,7 @@ GL.app = (function () {
       orbit, GL.ui.sparkles(9),
       h('div', { class: 'landing-grid' },
         h('div', { class: 'landing-copy' },
-          h('p', { class: 'label' }, 'Gujarati, on paper'),
+          h('p', { class: 'label' }, store.name() ? (hasLocal ? 'Welcome back, ' : 'Hello, ') + store.name() : 'Gujarati, on paper'),
           h('h1', { class: 'brandmark' }, h('span', { class: 'gu gtext', lang: 'gu' }, '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0'), h('span', { class: 'ptext' }, 'Play')),
           h('p', { class: 'landing-tag' }, 'Read what you already say.'),
           h('p', { class: 'landing-sub' }, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.')),
@@ -134,8 +134,8 @@ GL.app = (function () {
         h('section', { class: 'hero-panel summary' },
           h('div', { class: 'hero-glyphs', 'aria-hidden': 'true' }, h('span', { class: 'g1' }, '\u0A97'), h('span', { class: 'g2' }, '\u0A95'), h('span', { class: 'g3' }, '\u0AAE')),
           h('p', { class: 'label' }, 'Summary'),
-          h('h1', null, 'Level ' + lv.n + ' \u00b7 ' + lv.title),
-          h('p', null, st.points + ' points \u00b7 ' + s.days + (s.days === 1 ? ' day' : ' days') + ' played \u00b7 ' + s.learned + ' of ' + s.total + ' letters learned'),
+          h('h1', null, store.name() ? GL.ui.greeting(store.name()) : 'Level ' + lv.n + ' \u00b7 ' + lv.title),
+          h('p', null, (store.name() ? 'Level ' + lv.n + ' \u00b7 ' + lv.title + ' \u00b7 ' : '') + st.points + ' points \u00b7 ' + s.days + (s.days === 1 ? ' day' : ' days') + ' played \u00b7 ' + s.learned + ' of ' + s.total + ' letters learned'),
           h('div', { class: 'lv-bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': lv.size, 'aria-valuenow': lv.into, 'aria-label': 'Progress to the next level' }, h('div', { style: 'width:' + Math.round(lv.into / lv.size * 100) + '%' })),
           h('p', { class: 'hero-note' }, (lv.size - lv.into) + ' points to the next level.'),
           h('div', { class: 'row' }, startBtn, link('#/alphabet', 'btn ghost', 'Browse the alphabet')),
@@ -438,9 +438,10 @@ GL.app = (function () {
      enter: continue with a code (restores progress, opens Today). */
   function openCodeDialog(mode, after) {
     var dlg = document.getElementById('dlg');
-    var st = { mode: mode, code: mode === 'show' ? GL.sync.code() : null, msg: '', busy: false };
+    var st = { mode: mode, code: mode === 'show' ? GL.sync.code() : null, msg: '', busy: false, name: store.name() };
     function done() { dlg.close(); if (after) after(); else render(); }
     function create() {
+      if ((st.name || '').trim()) store.setName(st.name);   // saved with the progress, so the first cloud save already has it
       st.busy = true; st.msg = ''; paint();
       GL.sync.enable().then(function (code) { st.code = code; st.mode = 'show'; st.busy = false; revealCode = true; paint(); },
         function () { st.busy = false; st.msg = 'Could not reach the cloud. Check your connection and try again.'; paint(); });
@@ -453,6 +454,10 @@ GL.app = (function () {
         if (st.busy) body.appendChild(h('p', { id: 'code-msg' }, 'Creating your code\u2026'));
         else {
           body.appendChild(h('p', null, 'This saves your progress to the cloud under a code only you have. Save the code, then enter it on any device to continue where you left off. No account or email.'));
+          var nameIn = h('input', { type: 'text', class: 'typed name-input', id: 'name-input', maxlength: '24', autocomplete: 'nickname', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Your name', placeholder: 'Your first name or a nickname', value: st.name || '', enterkeyhint: 'done',
+            oninput: function () { st.name = nameIn.value; } });
+          body.appendChild(h('label', { class: 'name-field', for: 'name-input' }, h('span', { class: 'label' }, 'What should we call you?'), nameIn,
+            h('span', { class: 'field-note' }, 'Optional. It is saved with your progress so the app can greet you, including on other devices. A nickname is fine.')));
           if (st.msg) body.appendChild(h('p', { class: 'muted', id: 'code-msg' }, st.msg));
           body.appendChild(h('div', { class: 'row center' },
             h('button', { type: 'button', class: 'btn primary', id: 'code-get', onclick: create }, 'Get my code'),
@@ -552,6 +557,14 @@ GL.app = (function () {
   }
 
   /* ---------- Settings ---------- */
+  function nameCard() {
+    var input = h('input', { type: 'text', class: 'typed name-input', id: 'settings-name', maxlength: '24', autocomplete: 'nickname', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Your name', placeholder: 'Your first name or a nickname', value: store.name(), enterkeyhint: 'done' });
+    return h('section', { class: 'card' }, h('h2', null, 'Your name'),
+      h('p', null, 'Shown in the corner and in your greeting. It is saved with your progress, and with the cloud copy if you use a code. A nickname is fine, or leave it empty.'),
+      h('form', { class: 'type-form', onsubmit: function (e) {
+        e.preventDefault(); var n = store.setName(input.value); input.value = n; GL.ui.updateHud(); GL.ui.toast(n ? 'Saved, ' + n : 'Name removed');
+      } }, input, h('button', { type: 'submit', class: 'btn primary', id: 'settings-name-save' }, 'Save')));
+  }
   function settings() {
     var st = store.state();
     function radio(val, label, desc) {
@@ -570,6 +583,7 @@ GL.app = (function () {
     return h('div', null,
       h('h1', null, 'Settings'),
       h('div', { class: 'settings-grid' },
+        nameCard(),
         syncCard(),
         h('section', { class: 'card' }, h('h2', null, 'Transliteration hints'),
           h('p', null, 'As you improve, hide the English-letter hints. Quiz answers still use sounds as choices.'),

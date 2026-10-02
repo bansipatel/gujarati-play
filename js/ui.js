@@ -49,9 +49,19 @@ GL.ui = (function () {
   }
 
   function updateHud() {
-    var s = GL.store.state(), lv = GL.store.level();
+    var s = GL.store.state(), lv = GL.store.level(), name = GL.store.name();
     var p = document.getElementById('hud-points'); if (p) p.textContent = s.points + ' pts';
-    var l = document.getElementById('hud-level'); if (l) l.textContent = 'Level ' + lv.n + ' · ' + lv.title;
+    var l = document.getElementById('hud-level'); if (l) l.textContent = 'Level ' + lv.n + ' \u00b7 ' + lv.title;
+    var nm = document.getElementById('hud-name'), av = document.getElementById('hud-avatar');
+    if (nm) { nm.textContent = name; nm.hidden = !name; }
+    if (av) { av.textContent = name ? initialOf(name) : ''; av.hidden = !name; }
+    var hud = document.querySelector('.hud'); if (hud) hud.classList.toggle('has-name', !!name);
+  }
+  function initialOf(name) { var ch = Array.from(String(name).trim())[0] || ''; return ch.toUpperCase(); }
+  /* "Good evening, Bansi" by the time of day on this device. */
+  function greeting(name) {
+    var hr = new Date().getHours(), part = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+    return name ? part + ', ' + name : part;
   }
 
   /* Inline line icon from the sprite in index.html. */
@@ -161,5 +171,5 @@ GL.ui = (function () {
   function kindly() { return kind[Math.floor(Math.random() * kind.length)]; }
 
   return { h: h, gu: gu, highlighted: highlighted, toast: toast, updateHud: updateHud, onCleanup: onCleanup, runCleanups: runCleanups,
-    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, sparkles: sparkles, burst: burst, calm: calm, applyFx: applyFx, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
+    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, greeting: greeting, initialOf: initialOf, sparkles: sparkles, burst: burst, calm: calm, applyFx: applyFx, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
 })();

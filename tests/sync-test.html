@@ -88,6 +88,20 @@
   ok('merge reports a change, and merging the same data again reports none', changed === true && store.mergeRemote(remote) === false);
   ok('merge ignores malformed data', store.mergeRemote({ nope: 1 }) === false && store.mergeRemote(null) === false);
 
+  // --- name ---
+  store.reset();
+  ok('a fresh device has no name', store.name() === '');
+  ok('setName trims and collapses spaces', store.setName('   Bansi    Patel  ') === 'Bansi Patel');
+  ok('setName strips angle brackets and control characters', !/[<>\u0000-\u001F]/.test(store.setName('<b>Hi</b>\u0007 there')));
+  ok('setName keeps at most 24 characters', Array.from(store.setName('abcdefghijklmnopqrstuvwxyz0123456789')).length === 24);
+  ok('setName keeps Gujarati names intact', store.setName('બંસી') === 'બંસી');
+  ok('an empty name clears it', store.setName('   ') === '' && store.name() === '');
+  store.setName('Local'); var tLocal = store.state().nameAt;
+  ok('a newer name from another device wins', store.mergeRemote({ v: 1, points: 0, completed: {}, days: [], stats: {}, words: {}, name: 'Remote', nameAt: tLocal + 1000 }) === true && store.name() === 'Remote');
+  ok('an older name from another device is ignored', store.mergeRemote({ v: 1, points: 0, completed: {}, days: [], stats: {}, words: {}, name: 'Stale', nameAt: 5 }) === false && store.name() === 'Remote');
+  ok('a name set before any code is included in the first cloud save', (function () { store.setName('Asha'); return JSON.parse(JSON.stringify(store.snapshot())).name === 'Asha'; })());
+  store.setName('');
+
   // --- debounced background sync ---
   LOG.length = 0;
   for (var k = 0; k < 6; k++) store.addPoints(1);
