@@ -16,7 +16,7 @@ GL.sync = (function () {
   var cfg = window.GL_FIREBASE || null;
   var KEY = 'gujaratiPlay.sync';
   var ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0 O 1 I L: easy to read aloud and type
-  var DELAY = 8000;                                // wait this long after the last change before syncing
+  var DELAY = 3000;                                // wait this long after the last change before syncing (batches a burst of answers into one save)
   var link = readLink(), status = 'idle', listeners = [], timer = null, busy = false, again = false;
 
   function readLink() { try { var r = JSON.parse(window.localStorage.getItem(KEY)); return r && r.code ? r : null; } catch (e) { return null; } }
@@ -129,6 +129,7 @@ GL.sync = (function () {
     now();
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') now(); else if (timer) { clearTimeout(timer); timer = null; now(); } });
     window.addEventListener('online', function () { now(); });
+    window.addEventListener('pagehide', function () { if (timer) { clearTimeout(timer); timer = null; now(); } });
   }
 
   return {

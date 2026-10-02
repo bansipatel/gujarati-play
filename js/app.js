@@ -31,6 +31,42 @@ GL.app = (function () {
       h('div', { class: 'row' }, link('#/play/review', 'btn small', 'Review these')));
   }
 
+  /* ---------- Title screen (start menu) ---------- */
+  function enterApp() {
+    try { window.sessionStorage.setItem('gp.entered', '1'); } catch (e) { /* ignore */ }
+    if (location.hash === '#/' || location.hash === '') render(); else location.hash = '#/';
+  }
+  function hasEntered() { try { return !!window.sessionStorage.getItem('gp.entered'); } catch (e) { return false; } }
+  function menuBtn(id, title, sub, onclick, primary) {
+    return h('button', { type: 'button', class: 'menu-btn' + (primary ? ' primary' : ''), id: id, onclick: onclick },
+      h('span', { class: 'mb-title' }, title), h('span', { class: 'mb-sub' }, sub));
+  }
+  function titleScreen() {
+    var s = stats(), st = store.state();
+    var hasLocal = s.lessons > 0 || st.points > 0;
+    var syncOn = !!(GL.sync && GL.sync.available()), linked = !!(GL.sync && GL.sync.linked());
+    var opts = [];
+    if (linked) {
+      opts.push(menuBtn('title-continue', 'Continue', 'Your progress is saved to the cloud. Pick up where you left off.', enterApp, true));
+      opts.push(menuBtn('title-mycode', 'My code', 'See or copy your private code.', function () { openCodeDialog('show', null); }));
+    } else {
+      opts.push(menuBtn('title-play', hasLocal ? 'Resume on this device' : 'Start playing', 'Progress stays on this device only. Nothing goes to the cloud.', enterApp, true));
+      if (syncOn) {
+        opts.push(menuBtn('title-continue', 'Continue with a code', 'Load your saved progress from the cloud.', function () { openCodeDialog('enter', enterApp); }));
+        opts.push(menuBtn('title-getcode', 'Get a code', 'Save your progress to the cloud so you can continue on any device.', function () { openCodeDialog('make', enterApp); }));
+      }
+    }
+    return h('div', { class: 'title-screen' },
+      h('div', { class: 'hero-glyphs', 'aria-hidden': 'true' }, h('span', { class: 'g1' }, 'ગ'), h('span', { class: 'g2' }, 'ક'), h('span', { class: 'g3' }, 'મ')),
+      h('div', { class: 'title-wrap' },
+        h('div', { class: 'title-hero' },
+          h('p', { class: 'label' }, 'Gujarati, on paper'),
+          h('h1', null, h('span', { class: 'gu', lang: 'gu' }, 'ગુજરાતી'), ' Play'),
+          h('p', null, 'Read what you already say.')),
+        h('div', { class: 'menu' }, opts),
+        h('p', { class: 'title-foot' }, syncOn ? 'Codes are private and need no account or email.' : 'Your progress is saved on this device.')));
+  }
+
   /* ---------- Home ---------- */
   function home() {
     var s = stats(), lv = store.level(), st = store.state();
@@ -38,20 +74,12 @@ GL.app = (function () {
     var last = st.days.length ? st.days[st.days.length - 1] : null;
     var welcome = (started && last && last !== today_()) ? h('p', { class: 'muted' }, 'Welcome back. Everything you learned is still here.') : null;
 
-    // The landing page always offers three choices. Playing keeps progress on this device only; the cloud is used only
-    // when someone asks for a code or enters one.
+    // Home is the dashboard. Saving choices live on the title screen; here we only show where progress is saved.
     var syncOn = !!(GL.sync && GL.sync.available()), syncLinked = !!(GL.sync && GL.sync.linked());
     var startBtn = h('a', { href: started ? '#/today' : '#/lesson/1', class: 'btn primary huge', id: 'home-start' }, 'Start playing');
-    var codeBtns = [];
-    if (syncOn && !syncLinked) {
-      codeBtns.push(h('button', { type: 'button', class: 'btn ghost', id: 'home-continue', onclick: function () { openCodeDialog('enter'); } }, 'Continue with a code'));
-      codeBtns.push(h('button', { type: 'button', class: 'btn ghost', id: 'home-getcode', onclick: function () { openCodeDialog('make'); } }, 'Get a code'));
-    } else if (syncOn && syncLinked) {
-      codeBtns.push(h('button', { type: 'button', class: 'btn ghost', id: 'home-mycode', onclick: function () { openCodeDialog('show'); } }, 'My code'));
-    }
     var heroNote = syncOn ? h('p', { class: 'hero-note', id: 'hero-note' }, syncLinked
-      ? 'Synced to the cloud with your private code.'
-      : 'Start playing keeps your progress on this device only. Get a code to save it to the cloud and continue on any device.') : null;
+      ? ['Synced to the cloud with your private code. ', link('#/settings', 'note-link', 'Manage it in Settings')]
+      : ['Saved on this device only. ', link('#/start', 'note-link', 'Get a code to save it to the cloud')]) : null;
 
     var nextPanel;
     if (next) {
@@ -92,7 +120,7 @@ GL.app = (function () {
           h('p', { class: 'label' }, 'Gujarati, on paper'),
           h('h1', null, 'Read what you already say.'),
           h('p', null, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.'),
-          h('div', { class: 'row' }, startBtn, codeBtns, link('#/alphabet', 'btn ghost', 'Browse the alphabet')),
+          h('div', { class: 'row' }, startBtn, link('#/alphabet', 'btn ghost', 'Browse the alphabet')),
         heroNote),
         nextPanel),
       h('ul', { class: 'statline' },
@@ -390,10 +418,10 @@ GL.app = (function () {
   var revealCode = false, syncPaint = null;
   /* The private-code dialog.  make: explain, then create a code on request.  show: the code you have.
      enter: continue with a code (restores progress, opens Today). */
-  function openCodeDialog(mode) {
+  function openCodeDialog(mode, after) {
     var dlg = document.getElementById('dlg');
     var st = { mode: mode, code: mode === 'show' ? GL.sync.code() : null, msg: '', busy: false };
-    function done(href) { dlg.close(); if (href && location.hash !== href) location.hash = href; else render(); }
+    function done() { dlg.close(); if (after) after(); else render(); }
     function create() {
       st.busy = true; st.msg = ''; paint();
       GL.sync.enable().then(function (code) { st.code = code; st.mode = 'show'; st.busy = false; revealCode = true; paint(); },
@@ -417,7 +445,7 @@ GL.app = (function () {
         body.appendChild(h('div', { class: 'sync-code', id: 'code-shown', 'aria-label': 'Your code ' + st.code }, st.code));
         body.appendChild(h('div', { class: 'row center' }, h('button', { type: 'button', class: 'btn', id: 'code-copy', onclick: function () { copyText(st.code); } }, 'Copy code')));
         body.appendChild(h('p', { class: 'note' }, 'Save this code now (Notes, a message to yourself). It is the only way to bring your progress back on another device, and anyone with it can see your progress, so keep it private. You can find it again in Settings on this device.'));
-        body.appendChild(h('div', { class: 'row center' }, h('button', { type: 'button', class: 'btn primary', id: 'code-saved', onclick: function () { done(null); } }, 'I\u2019ve saved it')));
+        body.appendChild(h('div', { class: 'row center' }, h('button', { type: 'button', class: 'btn primary', id: 'code-saved', onclick: function () { done(); } }, 'I\u2019ve saved it')));
       } else {
         body.appendChild(h('h2', { id: 'dlg-title' }, 'Continue with your code'));
         var input = h('input', { type: 'text', class: 'typed code-input', id: 'code-input', 'aria-label': 'Your private code', placeholder: 'ABCD-EFGH-JKMN-PQRS', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'go' });
@@ -425,7 +453,7 @@ GL.app = (function () {
         body.appendChild(h('p', null, 'Enter the code you saved to bring your progress back.'));
         body.appendChild(h('form', { class: 'type-form', onsubmit: function (e) {
           e.preventDefault(); msg.textContent = 'Connecting\u2026';
-          GL.sync.connect(input.value).then(function (r) { GL.ui.updateHud(); GL.ui.toast(r.changed ? 'Progress restored' : 'Connected'); revealCode = false; done('#/today'); },
+          GL.sync.connect(input.value).then(function (r) { GL.ui.updateHud(); GL.ui.toast(r.changed ? 'Progress restored' : 'Connected'); revealCode = false; done(); },
             function (err) { msg.textContent = err.message; });
         } }, input, h('button', { type: 'submit', class: 'btn primary', id: 'code-connect' }, 'Continue')));
         body.appendChild(msg);
@@ -567,7 +595,7 @@ GL.app = (function () {
   function notFound() { return h('div', { class: 'card' }, h('h1', null, 'That page wandered off'), link('#/', 'btn primary', 'Back home')); }
 
   /* ---------- Router ---------- */
-  var titles = { '': 'Home', today: 'Today', lessons: 'Lessons', lesson: 'Lesson', practice: 'Practice', play: 'Game', flash: 'Flashcards', write: 'Writing', alphabet: 'Alphabet', settings: 'Settings' };
+  var titles = { start: 'Welcome', '': 'Home', today: 'Today', lessons: 'Lessons', lesson: 'Lesson', practice: 'Practice', play: 'Game', flash: 'Flashcards', write: 'Writing', alphabet: 'Alphabet', settings: 'Settings' };
   function render() {
     GL.ui.runCleanups();
     var parts = location.hash.replace(/^#\/?/, '').split('/');
@@ -575,7 +603,9 @@ GL.app = (function () {
     main.innerHTML = '';
     var node;
     try {
-      if (route === '') node = home();
+      if (route === 'start') node = titleScreen();
+      else if (route === '' && !hasEntered() && GL.sync && GL.sync.available()) { route = 'start'; node = titleScreen(); }
+      else if (route === '') node = home();
       else if (route === 'today') node = today();
       else if (route === 'lessons') node = lessons();
       else if (route === 'lesson') node = lesson(parseInt(arg, 10));
@@ -591,13 +621,14 @@ GL.app = (function () {
       node = h('div', { class: 'card' }, h('h1', null, 'Something went wrong'), h('p', null, 'Try going home. Your progress is safe.'), link('#/', 'btn primary', 'Home'));
     }
     main.appendChild(node);
+    document.body.classList.toggle('title-mode', route === 'start');
     document.title = (titles[route] || 'Play') + ' · ગુજરાતી Play';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
       var r = a.getAttribute('data-route'), on = r === route || (route === 'today' && r === '') || ((route === 'play' || route === 'flash') && r === 'practice') || (route === 'lesson' && r === 'lessons');
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var foot = document.getElementById('foot');
-    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
+    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a> · <a href="#/start">Title screen</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
     GL.ui.updateHud();
     window.scrollTo(0, 0);
     if (route !== 'write') main.focus({ preventScroll: true });
