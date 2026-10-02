@@ -322,6 +322,8 @@ button.peek { font: inherit; font-size: .82rem; min-height: 44px; border: 1px da
 .choice { display: flex; gap: .8rem; align-items: flex-start; padding: .55rem 0; min-height: 52px; cursor: pointer; }
 .choice input { width: 26px; height: 26px; flex: none; margin-top: .1rem; accent-color: #5b21b6; }
 fieldset { border: 0; padding: 0; margin: 0; }
+.sync-code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.5rem; letter-spacing: .12em; text-align: center; background: var(--tint); border-radius: 12px; padding: .7rem 1rem; margin: .6rem 0; word-break: break-all; }
+.code-input { text-transform: uppercase; letter-spacing: .1em; width: min(330px, 100%); font-size: 1.2rem; }
 textarea.backup { width: 100%; min-height: 6.5rem; font: .8rem/1.4 ui-monospace, Menlo, Consolas, monospace; border: 1px solid var(--line); border-radius: 12px; padding: .6rem; background: var(--blank); color: var(--ink); }
 dialog { border: 0; border-radius: var(--r-lg); padding: 0; max-width: min(92vw, 480px); width: 100%; color: var(--ink); background: #fff; box-shadow: 0 30px 80px rgba(85, 39, 92, .35); }
 dialog::backdrop { background: rgba(42, 24, 56, .5); }

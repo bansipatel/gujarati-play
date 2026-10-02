@@ -65,6 +65,33 @@ Next to the pad's guide there is an **Outline / Strokes / Off** switch. *Strokes
 
 It deliberately does **not** show stroke order or direction. I looked for a reliable source and did not find one: the one open dataset I found generated its strokes automatically from fonts (so the order is a guess) and is GPL-licensed, which would also affect this project's license. Showing guessed order as if it were correct would be worse than showing none. If you want real stroke order, the dependable route is to record it from a fluent Gujarati writer; the pad already captures ordered strokes, so a small "record a letter" tool could export them as data.
 
+## Turning on cloud sync (pick up where you left off)
+
+Sync is built in but stays hidden until you connect a Firebase project, so the site works exactly as before without it.
+
+**How it works.** The app assigns each person a random 16-character code (like `K7QM-3XWD-9PAT-NB4R`, about 78 bits, no 0/O/1/I/L). Progress is saved to Firestore under a document named with the SHA-256 hash of that code, so the code itself never leaves the device. Entering the code on another device pulls the cloud copy and **merges** it with what is already there (nothing is lost): points keep the larger value, finished lessons and play days are combined, and for each letter the more recently practiced record wins. The app still works fully offline and syncs a few seconds after you stop making changes, and again when you reopen it.
+
+**Why assigned and not chosen.** The code is the only protection, so it has to be unguessable. Chosen codes collide and get guessed ("kalam123"). A random one cannot be browsed or guessed.
+
+**Setup (about 10 minutes, free Spark plan, no billing):**
+1. In the [Firebase console](https://console.firebase.google.com) create a project (turn Google Analytics off).
+2. *Build > Firestore Database > Create database* (production mode, choose a nearby location).
+3. *Project settings > Your apps > Web (`</>`)*: register an app and copy `apiKey` and `projectId`.
+4. Put them in `js/firebase-config.js`: `window.GL_FIREBASE = { apiKey: '...', projectId: '...' };`
+5. Publish the rules: paste `firebase/firestore.rules` into *Firestore > Rules > Publish* (or `npx firebase-tools deploy --only firestore:rules`).
+6. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials) open that project's **Browser key** and restrict it: *Websites* = `https://bansipatel.github.io/*` and `http://localhost:*`; *API restrictions* = Cloud Firestore API only.
+7. Bump `VERSION` in `sw.js`, commit and push.
+
+**What the rules allow.** Reading or writing a document needs its exact 64-character ID; listing is denied, so nobody can browse other people's progress. Writes must have the expected three fields and stay under 60 KB. Everything else is denied.
+
+**Limits, honestly.**
+- Anyone who has a person's code can read and change that person's progress. There are no accounts, so a lost code means a lost cloud copy (the device's own copy remains). The app says so.
+- The Firebase API key is public by design (it ships in every Firebase web app). The rules and the key restriction are what protect the database, not secrecy of the key.
+- Merging is a sensible approximation, not perfect: if two devices practice the same letter at the same moment, counts take the larger value and the later record sets its strength.
+- "Reset all progress" resets this device and stops syncing it; the cloud copy is kept until you press "Delete cloud copy".
+- Free-plan limits (about 20,000 writes and 50,000 reads a day) are far above friend-scale use. If they were ever exceeded, Firebase would pause the service, not charge you.
+- Tested here against an in-memory fake of the Firestore REST API (`tests/sync-test.html`, 36 checks). The real rules and network path need to be tried against your actual project.
+
 ## What's inside
 
 - **12 short lessons** (5 new items each): consonants and their built-in "a", standalone vowels, vowel signs, the nasal dot, the joiner, and common joined letters. Each lesson unlocks after the previous one; any finished lesson can be replayed.

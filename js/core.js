@@ -162,9 +162,41 @@ GL.store = (function () {
     return s;
   }
   var state = load();
-  function save() {
+  function save(silent) {
     try { window.localStorage.setItem(KEY, JSON.stringify(state)); persistent = true; }
     catch (e) { persistent = false; memory = state; }
+    if (silent !== true && GL.sync && GL.sync.schedule) GL.sync.schedule();   // cloud sync (if on) follows local saves
+  }
+
+  /* Combine progress from another device into this one, losing nothing. Points only ever grow, days and finished lessons
+     are unions, and for each letter we keep the more recently practiced record (with the larger right/wrong counts).
+     Returns true if anything here changed. */
+  function mergeInto(a, b) {
+    var changed = false;
+    if ((b.points || 0) > a.points) { a.points = b.points; changed = true; }
+    (b.days || []).forEach(function (d) { if (a.days.indexOf(d) === -1) { a.days.push(d); changed = true; } });
+    a.days.sort();
+    Object.keys(b.completed || {}).forEach(function (k) {
+      var x = a.completed[k], y = b.completed[k];
+      if (!x) { a.completed[k] = y; changed = true; return; }
+      var plays = Math.max(x.plays || 0, y.plays || 0), at = Math.max(x.at || 0, y.at || 0);
+      if (plays !== x.plays || at !== x.at) { x.plays = plays; x.at = at; changed = true; }
+    });
+    Object.keys(b.stats || {}).forEach(function (id) {
+      var x = a.stats[id], y = b.stats[id];
+      if (!x) { a.stats[id] = y; changed = true; return; }
+      var later = (y.t || 0) > (x.t || 0) ? y : x;
+      var m = { s: later.s, c: Math.max(x.c || 0, y.c || 0), w: Math.max(x.w || 0, y.w || 0), t: Math.max(x.t || 0, y.t || 0), due: later.due };
+      var lw = Math.max(x.lastWrong || 0, y.lastWrong || 0); if (lw) m.lastWrong = lw;
+      if (m.s !== x.s || m.c !== x.c || m.w !== x.w || m.t !== x.t || m.due !== x.due || (m.lastWrong || 0) !== (x.lastWrong || 0)) { a.stats[id] = m; changed = true; }
+    });
+    Object.keys(b.words || {}).forEach(function (g) {
+      var x = a.words[g], y = b.words[g];
+      if (!x) { a.words[g] = y; changed = true; return; }
+      var c = Math.max(x.c || 0, y.c || 0), w = Math.max(x.w || 0, y.w || 0);
+      if (c !== x.c || w !== x.w) { x.c = c; x.w = w; changed = true; }
+    });
+    return changed;
   }
   function today() {
     var d = new Date();
@@ -175,6 +207,14 @@ GL.store = (function () {
     state: function () { return state; },
     isPersistent: function () { return persistent; },
     save: save,
+    /* A copy of all progress, for cloud sync. */
+    snapshot: function () { return JSON.parse(JSON.stringify(state)); },
+    mergeRemote: function (remote) {
+      if (!remote || remote.v !== 1 || typeof remote.points !== 'number' || typeof remote.completed !== 'object') return false;
+      var changed = mergeInto(state, remote);
+      if (changed) save(true);
+      return changed;
+    },
     reset: function () { state = fresh(); save(); },
     addPoints: function (n) { state.points += n; save(); },
     /* Records a day of play. Returns true on the first activity of a new day. */

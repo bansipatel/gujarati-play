@@ -370,6 +370,74 @@ GL.app = (function () {
     dlg.querySelector('a.btn').addEventListener('click', function () { dlg.close(); });
   }
 
+  /* ---------- Sync (cloud) ---------- */
+  var revealCode = false, syncPaint = null;
+  function ago(ts) {
+    if (!ts) return 'never';
+    var s = Math.round((Date.now() - ts) / 1000);
+    if (s < 20) return 'just now'; if (s < 3600) return Math.round(s / 60) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago'; return Math.round(s / 86400) + ' days ago';
+  }
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { GL.ui.toast('Code copied'); }, function () { GL.ui.toast('Select the code and copy it'); });
+    else GL.ui.toast('Select the code and copy it');
+  }
+  function confirmDeleteCloud() {
+    var dlg = document.getElementById('dlg');
+    dlg.innerHTML = '';
+    dlg.appendChild(h('div', { class: 'dlg-body' },
+      h('h2', { id: 'dlg-title' }, 'Delete the cloud copy?'),
+      h('p', null, 'Your progress on this device stays. Other devices using this code will no longer be able to sync.'),
+      h('div', { class: 'row center' },
+        h('button', { type: 'button', class: 'btn primary', id: 'cancel-delete', onclick: function () { dlg.close(); } }, 'Keep it'),
+        h('button', { type: 'button', class: 'btn danger', id: 'confirm-delete', onclick: function () {
+          GL.sync.deleteCloud().then(function () { dlg.close(); GL.ui.toast('Cloud copy deleted'); revealCode = false; if (syncPaint) syncPaint(); }, function () { dlg.close(); GL.ui.toast('Could not reach the cloud. Try again.'); });
+        } }, 'Delete cloud copy'))));
+    dlg.setAttribute('aria-labelledby', 'dlg-title');
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    document.getElementById('cancel-delete').focus();
+  }
+  function syncCard() {
+    if (!GL.sync || !GL.sync.configured()) return null;
+    var card = h('section', { class: 'card sync-card' });
+    function paint() {
+      card.innerHTML = '';
+      card.appendChild(h('h2', null, 'Sync across devices'));
+      if (!GL.sync.available()) { card.appendChild(h('p', null, 'Sync needs a secure (https) page. Open the published site to use it.')); return; }
+      if (GL.sync.linked()) {
+        var code = GL.sync.code(), shown = revealCode ? code : code.replace(/[A-Z0-9]/g, '\u2022');
+        var st = { idle: '', syncing: 'Syncing\u2026', synced: 'Synced ' + ago(GL.sync.last()), offline: 'Offline. It will sync when you are back online.', error: 'Could not reach the cloud. Your progress is safe on this device and it will retry.' }[GL.sync.status()] || '';
+        card.appendChild(h('p', null, 'Your progress is saved to the cloud under this code. Enter it on another device to pick up where you left off.'));
+        card.appendChild(h('div', { class: 'sync-code', id: 'sync-code', 'aria-label': revealCode ? 'Your sync code ' + code : 'Sync code hidden' }, shown));
+        card.appendChild(h('div', { class: 'row' },
+          h('button', { type: 'button', class: 'btn small', id: 'sync-reveal', onclick: function () { revealCode = !revealCode; paint(); } }, revealCode ? 'Hide code' : 'Show code'),
+          h('button', { type: 'button', class: 'btn small', id: 'sync-copy', onclick: function () { copyText(code); } }, 'Copy code'),
+          h('button', { type: 'button', class: 'btn small ghost', id: 'sync-now', onclick: function () { GL.sync.now().then(paint); } }, 'Sync now')));
+        card.appendChild(h('p', { class: 'muted', id: 'sync-status' }, st));
+        card.appendChild(h('p', { class: 'note' }, 'Anyone with this code can see and change your progress, so keep it private. There are no accounts: if you lose the code, you lose the cloud copy (your progress on this device stays).'));
+        card.appendChild(h('div', { class: 'row' },
+          h('button', { type: 'button', class: 'btn small', id: 'sync-stop', onclick: function () { GL.sync.unlink(); revealCode = false; paint(); render(); } }, 'Stop syncing on this device'),
+          h('button', { type: 'button', class: 'btn small danger', id: 'sync-delete', onclick: confirmDeleteCloud }, 'Delete cloud copy')));
+      } else {
+        card.appendChild(h('p', null, 'Save your progress to the cloud with a private code, then enter that code on another device to continue where you left off. No account or email needed.'));
+        card.appendChild(h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', id: 'sync-on', onclick: function () {
+          GL.sync.enable().then(function () { revealCode = true; GL.ui.toast('Sync is on'); paint(); render(); }, function () { GL.ui.toast('Could not turn on sync. Check your connection.'); });
+        } }, 'Turn on sync')));
+        var input = h('input', { type: 'text', class: 'typed code-input', id: 'sync-input', 'aria-label': 'Sync code', placeholder: 'ABCD-EFGH-JKMN-PQRS', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'go' });
+        var msg = h('p', { class: 'muted', id: 'sync-msg', 'aria-live': 'polite' });
+        card.appendChild(h('p', { class: 'label' }, 'Already have a code?'));
+        card.appendChild(h('form', { class: 'type-form', onsubmit: function (e) {
+          e.preventDefault(); msg.textContent = 'Connecting\u2026';
+          GL.sync.connect(input.value).then(function (r) { GL.ui.updateHud(); GL.ui.toast(r.changed ? 'Progress combined' : 'Connected'); revealCode = false; render(); }, function (err) { msg.textContent = err.message; });
+        } }, input, h('button', { type: 'submit', class: 'btn', id: 'sync-connect' }, 'Connect')));
+        card.appendChild(msg);
+      }
+    }
+    syncPaint = function () { if (document.body.contains(card)) paint(); };
+    paint();
+    return card;
+  }
+
   /* ---------- Settings ---------- */
   function settings() {
     var st = store.state();
@@ -386,6 +454,7 @@ GL.app = (function () {
     return h('div', null,
       h('h1', null, 'Settings'),
       h('div', { class: 'settings-grid' },
+        syncCard(),
         h('section', { class: 'card' }, h('h2', null, 'Transliteration hints'),
           h('p', null, 'As you improve, hide the English-letter hints. Quiz answers still use sounds as choices.'),
           h('fieldset', null, h('legend', { class: 'sr' }, 'Hint display'),
@@ -419,10 +488,10 @@ GL.app = (function () {
     dlg.innerHTML = '';
     dlg.appendChild(h('div', { class: 'dlg-body' },
       h('h2', { id: 'dlg-title' }, 'Start over from the beginning?'),
-      h('p', null, 'This clears your points, lessons and letter practice from this browser. It cannot be undone.'),
+      h('p', null, 'This clears your points, lessons and letter practice from this browser. It cannot be undone.' + (GL.sync && GL.sync.linked() ? ' This device will also stop syncing. The cloud copy is kept; delete it in Sync settings if you want it gone.' : '')),
       h('div', { class: 'row center' },
         h('button', { type: 'button', class: 'btn primary', id: 'cancel-reset', onclick: function () { dlg.close(); } }, 'Keep my progress'),
-        h('button', { type: 'button', class: 'btn danger', id: 'confirm-reset', onclick: function () { store.reset(); dlg.close(); GL.ui.updateHud(); GL.ui.toast('Fresh start'); location.hash = '#/'; render(); } }, 'Yes, reset'))));
+        h('button', { type: 'button', class: 'btn danger', id: 'confirm-reset', onclick: function () { if (GL.sync) GL.sync.unlink(); store.reset(); dlg.close(); GL.ui.updateHud(); GL.ui.toast('Fresh start'); location.hash = '#/'; render(); } }, 'Yes, reset'))));
     dlg.setAttribute('aria-labelledby', 'dlg-title');
     if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
     document.getElementById('cancel-reset').focus();
@@ -460,6 +529,8 @@ GL.app = (function () {
       var r = a.getAttribute('data-route'), on = r === route || (route === 'today' && r === '') || ((route === 'play' || route === 'flash') && r === 'practice') || (route === 'lesson' && r === 'lessons');
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
+    var foot = document.getElementById('foot');
+    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
     GL.ui.updateHud();
     window.scrollTo(0, 0);
     if (route !== 'write') main.focus({ preventScroll: true });
@@ -494,6 +565,7 @@ GL.app = (function () {
   function init() {
     main = document.getElementById('app');
     setupFullscreen();
+    if (GL.sync) { GL.sync.onStatus(function () { if (syncPaint) syncPaint(); }); GL.sync.start(); }
     window.addEventListener('hashchange', render);
     render();
   }

@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// One small document per sync code, stored at progress/{sha256 of the code}.
+// Reading or writing needs the exact document ID; listing is forbidden, so IDs cannot be browsed.
+// Writes are limited to the expected fields and a small size.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /progress/{id} {
+      allow get: if id.matches('^[a-f0-9]{64}$');
+      allow list: if false;
+      allow create, update: if id.matches('^[a-f0-9]{64}$')
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt', 'v'])
+        && request.resource.data.keys().hasAll(['data', 'updatedAt', 'v'])
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 60000
+        && request.resource.data.updatedAt is int
+        && request.resource.data.v == 1;
+      allow delete: if id.matches('^[a-f0-9]{64}$');
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

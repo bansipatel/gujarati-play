@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sync tests</title>
+<!--
+  Dev tool: tests js/sync.js and the progress merge against an in-memory fake of the Firestore REST API.
+  It cannot test the real security rules or network; do that with the real project (see README).
+  Serve the project folder (python -m http.server) and open /tests/sync-test.html.
+-->
+<body style="font:13px/1.4 monospace;padding:1rem"><pre id="out">running...</pre>
+<script src="../js/data/items.js"></script>
+<script src="../js/data/lessons.js"></script>
+<script src="../js/data/words.js"></script>
+<script src="../js/core.js"></script>
+<script>
+  // fake Firestore REST backend
+  window.GL_FIREBASE = { apiKey: 'test-key', projectId: 'demo-project' };
+  var DB = {}, LOG = [], OFFLINE = false, realFetch = window.fetch;
+  window.fetch = function (u, opts) {
+    if (String(u).indexOf('firestore.googleapis.com') === -1) return realFetch.apply(this, arguments);
+    if (OFFLINE) return Promise.reject(new TypeError('Failed to fetch'));
+    var m = String(u).match(/documents\/progress\/([^?]+)/), id = m && m[1], method = (opts && opts.method) || 'GET';
+    LOG.push(method + ' ' + id);
+    function res(status, body) { return Promise.resolve({ status: status, ok: status >= 200 && status < 300, json: function () { return Promise.resolve(body); } }); }
+    if (method === 'GET') return DB[id] ? res(200, { fields: DB[id] }) : res(404, {});
+    if (method === 'PATCH') { var f = JSON.parse(opts.body).fields; if (!f.data || typeof f.data.stringValue !== 'string') return res(403, {}); DB[id] = f; return res(200, {}); }
+    if (method === 'DELETE') { delete DB[id]; return res(200, {}); }
+    return res(400, {});
+  };
+</script>
+<script src="../js/sync.js"></script>
+<script>
+(async function () {
+  var out = [], pass = 0, fail = 0;
+  function ok(name, cond, extra) { (cond ? pass++ : fail++); out.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : '  <-- ' + (extra || ''))); }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  var S = GL.sync, store = GL.store;
+
+  // --- codes ---
+  ok('sync is available with config + crypto', S.available());
+  var codes = {}, bad = 0; for (var i = 0; i < 2000; i++) { var c = S._newRaw(); codes[c] = 1; if (!/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{16}$/.test(c)) bad++; }
+  ok('2000 generated codes are all 16 valid characters', bad === 0);
+  ok('2000 generated codes are all different', Object.keys(codes).length === 2000);
+  ok('parse accepts lower case and dashes', S.parse('abcd-efgh-jkmn-pqrs').raw === 'ABCDEFGHJKMNPQRS');
+  ok('parse rejects a short code', !!S.parse('ABCD-EFGH').error);
+  ok('parse rejects 0/O/1/I/L', !!S.parse('ABCD-EFGH-JKMN-PQR0').error && !!S.parse('ABCD-EFGH-JKMN-PQRO').error && !!S.parse('ABCD-EFGH-JKMN-PQR1').error && !!S.parse('ABCD-EFGH-JKMN-PQRI').error && !!S.parse('ABCD-EFGH-JKMN-PQRL').error);
+
+  // --- enable on "device A" ---
+  store.reset();
+  store.state().points = 120; store.state().completed[1] = { plays: 1, at: 1000 }; store.state().completed[2] = { plays: 2, at: 2000 };
+  store.state().stats['ક'] = { s: 3, c: 4, w: 1, t: 5000, due: 9000 }; store.state().days = ['2026-10-01']; store.save(true);
+  var code = await S.enable();
+  ok('enable returns a formatted code', /^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(code), code);
+  var ids = Object.keys(DB);
+  ok('exactly one cloud document was created', ids.length === 1);
+  ok('document id is a 64-char hex hash', /^[a-f0-9]{64}$/.test(ids[0]));
+  ok('the code itself is not stored in the document or id', JSON.stringify(DB).indexOf(code.replace(/-/g, '')) === -1 && ids[0].indexOf(code.replace(/-/g, '').toLowerCase()) === -1);
+  ok('device is linked and status is synced', S.linked() && S.status() === 'synced');
+  ok('cloud copy holds the progress', JSON.parse(DB[ids[0]].data.stringValue).points === 120);
+
+  // --- "device B": fresh device connects with the code ---
+  S.unlink(); store.reset();
+  ok('fresh device starts empty', store.state().points === 0);
+  var r = await S.connect(code.toLowerCase());
+  ok('connect restores progress', store.state().points === 120 && !!store.state().completed[2] && store.state().stats['ક'].s === 3, JSON.stringify(store.state()));
+  ok('connect reports it changed things', r.changed === true);
+  ok('connect links the device', S.linked() && S.code() === code);
+
+  // --- wrong code ---
+  var linkedCode = S.code(); S.unlink();
+  var err = ''; try { await S.connect('AAAA-BBBB-CCCC-DDDD'); } catch (e) { err = e.message; }
+  ok('unknown code is rejected with a clear message', /No progress was found/.test(err), err);
+  ok('rejected code does not link the device', !S.linked());
+  err = ''; try { await S.connect('nope'); } catch (e) { err = e.message; }
+  ok('malformed code is rejected', /16 letters/.test(err), err);
+
+  // --- merge: two devices diverged ---
+  await S.connect(linkedCode);
+  store.state().points = 130; store.state().completed[1].plays = 3; store.state().stats['ક'] = { s: 4, c: 6, w: 1, t: 8000, due: 20000 }; store.state().days.push('2026-10-02'); store.save(true);   // device B played more
+  var remote = { v: 1, points: 200, days: ['2026-10-01', '2026-10-03'], completed: { 1: { plays: 1, at: 1000 }, 3: { plays: 1, at: 3000 } }, stats: { 'ક': { s: 1, c: 5, w: 3, t: 7000, due: 7500 }, 'મ': { s: 2, c: 2, w: 0, t: 6000, due: 100 } }, words: {}, settings: { hints: 'hide', speech: false } };
+  var changed = store.mergeRemote(remote), st = store.state();
+  ok('merge: points take the larger value', st.points === 200);
+  ok('merge: finished lessons are a union', !!st.completed[1] && !!st.completed[2] && !!st.completed[3]);
+  ok('merge: plays take the larger value', st.completed[1].plays === 3);
+  ok('merge: days are a sorted union', st.days.join() === '2026-10-01,2026-10-02,2026-10-03', st.days.join());
+  ok('merge: newer letter record wins strength, counts take the max', st.stats['ક'].s === 4 && st.stats['ક'].c === 6 && st.stats['ક'].w === 3, JSON.stringify(st.stats['ક']));
+  ok('merge: letters only on the other device are added', st.stats['મ'] && st.stats['મ'].s === 2);
+  ok('merge: local settings are kept', st.settings.hints === 'show');
+  ok('merge reports a change, and merging the same data again reports none', changed === true && store.mergeRemote(remote) === false);
+  ok('merge ignores malformed data', store.mergeRemote({ nope: 1 }) === false && store.mergeRemote(null) === false);
+
+  // --- debounced background sync ---
+  LOG.length = 0;
+  for (var k = 0; k < 6; k++) store.addPoints(1);
+  await wait(500); ok('no network call right after a change (debounced)', LOG.length === 0, LOG.join(','));
+  await wait(9000);
+  var gets = LOG.filter(function (x) { return x.indexOf('GET') === 0; }).length, patches = LOG.filter(function (x) { return x.indexOf('PATCH') === 0; }).length;
+  ok('six quick changes caused one sync (1 read + 1 write)', gets === 1 && patches === 1, LOG.join(','));
+  ok('cloud has the latest points', JSON.parse(DB[Object.keys(DB)[0]].data.stringValue).points === store.state().points);
+
+  // --- offline ---
+  OFFLINE = true; var before = JSON.stringify(store.state()); var res = await S.now();
+  ok('offline sync fails quietly and keeps local progress', res === false && JSON.stringify(store.state()) === before && (S.status() === 'error' || S.status() === 'offline'), S.status());
+  OFFLINE = false; res = await S.now(); ok('sync recovers when back online', res === true && S.status() === 'synced');
+
+  // --- unlink, reset and delete ---
+  S.unlink(); LOG.length = 0; store.reset(); await wait(9500);
+  ok('after unlinking, a local reset does not touch the cloud', LOG.length === 0 && store.state().points === 0, LOG.join(','));
+  await S.connect(linkedCode); ok('cloud copy is still there to reconnect to', store.state().points > 0);
+  await S.deleteCloud(); ok('delete removes the cloud document and unlinks', Object.keys(DB).length === 0 && !S.linked());
+
+  document.getElementById('out').textContent = out.join('\n') + '\n\n' + pass + ' passed, ' + fail + ' failed';
+  document.title = fail ? 'FAILED' : 'passed';
+})();
+</script>
