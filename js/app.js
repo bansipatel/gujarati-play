@@ -798,7 +798,15 @@ GL.app = (function () {
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var foot = document.getElementById('foot');
-    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
+    if (foot) {
+      var linkedNow = !!(GL.sync && GL.sync.linked()), canSync = !!(GL.sync && GL.sync.configured());
+      foot.textContent = '';
+      foot.appendChild(h('div', { class: 'save-note' + (linkedNow ? ' ok' : '') },
+        h('span', { class: 'sn-ic', 'aria-hidden': 'true' }, GL.ui.icon(linkedNow ? 'check' : 'cloud')),
+        h('span', { class: 'sn-text' }, h('b', null, linkedNow ? 'Synced with your code.' : 'Saved on this device.'),
+          linkedNow ? ' Your progress is also in the cloud.' : ' Clearing your browser data would erase it.'),
+        h('a', { class: 'sn-btn', href: '#/settings' }, linkedNow ? 'Sync settings' : (canSync ? 'Back up or sync' : 'Back up'))));
+    }
     GL.ui.updateHud();
     window.scrollTo(0, 0);
     if (route !== 'write') main.focus({ preventScroll: true });
