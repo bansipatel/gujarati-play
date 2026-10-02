@@ -1,84 +1,100 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Shape check simulation</title>
+<title>Shape grade simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
 <!--
-  Dev tool: measures how well the writing-pad shape check works on SIMULATED handwriting.
+  Dev tool: measures the writing-pad grade (0-10) on SIMULATED drawings, using the real scoring code.
   Serve the project folder (python -m http.server) and open /tests/shape-sim.html.
-  "Handwriting" = the centerline of each font letter, randomly stretched, rotated, sheared and wobbled,
-  sometimes with a chunk missing. Real hands are messier, so treat these numbers as an upper bound.
+    RIGHT   = a letter's centerline, randomly stretched, rotated, sheared and wobbled (3 messiness levels)
+    WRONG   = another letter's centerline, graded against the target
+    NOT     = drawings that are not letters at all (S, O, C, U, line, zigzag, wave, spiral, plus, scribble)
+  Real hands differ from this simulation, so treat the numbers as indicative, not exact.
 -->
-<body style="font:14px/1.4 monospace;padding:1rem"><pre id="out">running...</pre>
+<body style="font:13px/1.35 monospace;padding:1rem"><pre id="out">running...</pre>
 <script src="../js/data/items.js"></script>
 <script src="../js/shape.js"></script>
 <script>
 (async function () {
   await document.fonts.load('180px "Noto Sans Gujarati"', 'ક');
-  var NL = String.fromCharCode(10);
-  var N = GL.shape.N;
+  await new Promise(function (r) { setTimeout(r, 800); });
+  var fontOk = document.fonts.check('180px "Noto Sans Gujarati"', 'ક');
+  var NL = String.fromCharCode(10), N = GL.shape.N;
   var glyphs = GL.items.map(function (it) { return it.kind === 'sign' ? it.demo : it.id; });
-  var seed = 12345;
+  var seed = 2024;
   function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
   function rr(a, b) { return a + (b - a) * rnd(); }
-  function points(mask) { var pts = []; for (var j = 0; j < mask.length; j++) if (mask[j]) pts.push([j % N, Math.floor(j / N)]); return pts; }
+  function pts(mask) { var p = []; for (var j = 0; j < mask.length; j++) if (mask[j]) p.push([j % N, Math.floor(j / N)]); return p; }
+  var skels = {}; glyphs.forEach(function (g) { skels[g] = pts(GL.shape._template(g).skel); });
 
-  // Simulated handwriting: distort the centerline; optionally drop a chunk. One dot per point, normalized 0..1.
-  function handwrite(skel, mess, dropChunk) {
-    var cx = N / 2, cy = N / 2;
-    var sx = rr(1 - 0.13 * mess, 1 + 0.13 * mess), sy = rr(1 - 0.13 * mess, 1 + 0.13 * mess);
+  function handwrite(skel, mess) {
+    var cx = N / 2, cy = N / 2, sx = rr(1 - 0.13 * mess, 1 + 0.13 * mess), sy = rr(1 - 0.13 * mess, 1 + 0.13 * mess);
     var th = rr(-0.1, 0.1) * mess, sh = rr(-0.1, 0.1) * mess, ph1 = rr(0, 6.28), ph2 = rr(0, 6.28), amp = 1.1 * mess;
-    var pts = skel.map(function (p) {
+    return skel.map(function (p) {
       var x = p[0] - cx, y = p[1] - cy; x += sh * y;
       var xr = x * Math.cos(th) - y * Math.sin(th), yr = x * Math.sin(th) + y * Math.cos(th);
       xr *= sx; yr *= sy; xr += amp * Math.sin(p[1] / 7 + ph1); yr += amp * Math.sin(p[0] / 7 + ph2);
-      return [(xr + cx) / N, (yr + cy) / N];
+      return [[(xr + cx) / N, (yr + cy) / N, 0.5]];
     });
-    if (dropChunk) { var a = pts[Math.floor(rnd() * pts.length)]; pts = pts.filter(function (p) { return Math.hypot(p[0] - a[0], p[1] - a[1]) > 0.16; }); }
-    return pts.map(function (p) { return [[p[0], p[1], 0.5]]; });
   }
-  var inkOf = function (strokes) { return GL.shape._ink(strokes); };
-  var skels = {};
-  glyphs.forEach(function (g) { skels[g] = points(GL.shape._template(g).skel); });
+  function arc(cx, cy, r, a0, a1, n) { var o = []; for (var i = 0; i <= n; i++) { var a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a), 0.5]); } return o; }
+  function line(x0, y0, x1, y1) { var o = []; for (var k = 0; k <= 24; k++) o.push([x0 + (x1 - x0) * k / 24, y0 + (y1 - y0) * k / 24, 0.5]); return o; }
+  var shapes = {
+    S: [arc(0.5, 0.32, 0.2, 330, 90, 40).concat(arc(0.5, 0.72, 0.2, 270, 510, 40))],
+    O: [arc(0.5, 0.5, 0.32, 0, 360, 60)], C: [arc(0.55, 0.5, 0.32, 40, 320, 50)],
+    U: [line(0.2, 0.2, 0.2, 0.6).concat(arc(0.5, 0.6, 0.3, 180, 0, 40)).concat(line(0.8, 0.6, 0.8, 0.2))],
+    line: [line(0.5, 0.15, 0.5, 0.85)],
+    zigzag: [line(0.2, 0.2, 0.8, 0.35).concat(line(0.8, 0.35, 0.2, 0.5)).concat(line(0.2, 0.5, 0.8, 0.65)).concat(line(0.8, 0.65, 0.2, 0.8))],
+    wave: [(function () { var o = []; for (var i = 0; i <= 60; i++) o.push([0.1 + 0.8 * i / 60, 0.5 + 0.22 * Math.sin(i / 60 * 12.56), 0.5]); return o; })()],
+    spiral: [(function () { var o = []; for (var i = 0; i <= 80; i++) { var a = i / 80 * 15.7, r = 0.05 + 0.3 * i / 80; o.push([0.5 + r * Math.cos(a), 0.5 + r * Math.sin(a), 0.5]); } return o; })()],
+    plus: [line(0.5, 0.15, 0.5, 0.85), line(0.15, 0.5, 0.85, 0.5)]
+  };
+  function scribble() { var o = [], x = 0.5, y = 0.5, vx = 0, vy = 0; for (var i = 0; i < 120; i++) { vx += rr(-0.05, 0.05); vy += rr(-0.05, 0.05); vx *= 0.8; vy *= 0.8; x = Math.min(0.9, Math.max(0.1, x + vx)); y = Math.min(0.9, Math.max(0.1, y + vy)); o.push([x, y, 0.5]); } return [o]; }
 
   function q(a, p) { a = a.slice().sort(function (x, y) { return x - y; }); return a[Math.min(a.length - 1, Math.max(0, Math.floor(p * a.length)))]; }
-  function f2(x) { return x.toFixed(2); }
-  var pairs = GL.confusables.map(function (c) {
-    var f = function (id) { var it = GL.itemById[id]; return it.kind === 'sign' ? it.demo : id; };
-    return [f(c[0]), f(c[1])];
-  });
+  function f1(x) { return x.toFixed(1); }
+  function pc(n, d) { return Math.round(100 * n / d) + '%'; }
+  var sample = glyphs.filter(function (g, i) { return i % 3 === 0; });                       // 20 letters
+  var pool = glyphs.filter(function (g, i) { return i % 5 === 2; });                           // letters to check "looks like another letter" against
+  var look = GL.confusables.map(function (c) { var f = function (id) { var it = GL.itemById[id]; return it.kind === 'sign' ? it.demo : id; }; return [f(c[0]), f(c[1])]; });
+  var out = [];
 
-  var out = [], T = 5;
-  var sweep = window.location.search.indexOf('one') > -1 ? [[3, 3]] : [[2, 2], [3, 3], [3, 4], [4, 4]];
-  sweep.forEach(function (pp) {
-    GL.shape.params.DC = pp[0]; GL.shape.params.DP = pp[1];
-    seed = 777;
-    var res = {}, lines = [];
-    [['tidy', 0.6, false], ['typical', 1.0, false], ['messy', 1.6, false], ['missing', 1.0, true]].forEach(function (cfg) {
-      var f = [], top1 = 0, n = 0, bands = { close: 0, getting: 0, far: 0 }, conf = 0;
-      glyphs.forEach(function (g) {
-        for (var t = 0; t < T; t++) {
-          var ink = inkOf(handwrite(skels[g], cfg[1], cfg[2])); if (!ink) continue;
-          var sc = GL.shape._scoreAll(ink, g, glyphs), v = GL.shape._verdict(sc.me, sc.others);
-          f.push(sc.me.f); n++; if (sc.me.f >= sc.others[0].f) top1++; bands[v.band]++; if (v.confusedWith) conf++;
-        }
-      });
-      lines.push('  RIGHT ' + cfg[0] + ': median ' + f2(q(f, 0.5)) + '  told close ' + Math.round(100 * bands.close / n) + '% / getting there ' + Math.round(100 * bands.getting / n) + '% / not close ' + Math.round(100 * bands.far / n) + '%  wrongly "looks like another letter" ' + Math.round(100 * conf / n) + '%');
+  function run(strokes, target, others) { var ink = GL.shape._ink(strokes); if (!ink) return null; var sc = GL.shape._scoreAll(ink, target, others), v = GL.shape._verdict(sc.me, sc.others); return { g: sc.me.grade, v: v }; }
+  function bands(list) { var b = { great: 0, close: 0, getting: 0, far: 0 }; list.forEach(function (r) { b[r.v.band]++; }); var n = list.length; return 'very close ' + pc(b.great, n) + ' / close ' + pc(b.close, n) + ' / getting there ' + pc(b.getting, n) + ' / not close ' + pc(b.far, n); }
+  function stats(list) { var g = list.map(function (r) { return r.g; }); return 'grade p10 ' + f1(q(g, 0.1)) + '  p25 ' + f1(q(g, 0.25)) + '  median ' + f1(q(g, 0.5)) + '  p75 ' + f1(q(g, 0.75)); }
+
+  if (window.location.search.indexOf('sweep') > -1) {
+    var settings = [[0, 0, 5, 0.06], [2, 0, 5, 0.06], [3, 0, 5, 0.06], [3, 1, 5, 0.06], [4, 1, 5, 0.06], [5, 1, 5, 0.06], [3, 1, 4, 0.06], [4, 1, 4, 0.06], [4, 1, 4, 0.1], [5, 1, 4, 0.1], [6, 1, 4, 0.1]];
+    settings.forEach(function (st) {
+      GL.shape.grading.MISS_W = st[0]; GL.shape.grading.STRAY_W = st[1]; GL.shape.grading.FAR = st[2]; GL.shape.grading.FREE = st[3]; seed = 2024;
+      function med(cfgMess) { var list = []; sample.forEach(function (g) { for (var t = 0; t < 3; t++) { var r = run(handwrite(skels[g], cfgMess), g, [g]); if (r) list.push(r.g); } }); return [q(list, 0.5), q(list, 0.1)]; }
+      var tidy = med(0.6), typ = med(1.0), mes = med(1.6);
+      var wl = []; for (var k = 0; k < 120; k++) { var aa = sample[Math.floor(rnd() * sample.length)], bb = glyphs[Math.floor(rnd() * glyphs.length)]; if (aa === bb) continue; var rs = run(handwrite(skels[aa], 1.0), bb, [bb]); if (rs) wl.push(rs.g); }
+      var sk = run(shapes.S, 'ક', ['ક']).g, spiral = run(shapes.spiral, 'ક', ['ક']).g, cc = run(shapes.C, 'ક', ['ક']).g;
+      out.push('missW ' + st[0] + ' strayW ' + st[1] + ' far ' + st[2] + ' free ' + st[3] + ' | tidy ' + f1(tidy[0]) + ' typical ' + f1(typ[0]) + ' (p10 ' + f1(typ[1]) + ') messy ' + f1(mes[0]) + ' (p10 ' + f1(mes[1]) + ') | wrong letter median ' + f1(q(wl, 0.5)) + ' p90 ' + f1(q(wl, 0.9)) + ' | S vs ક ' + f1(sk) + '  spiral ' + f1(spiral) + '  C ' + f1(cc));
     });
-    function wrongStats(label, picks) {
-      var n = 0, b = { close: 0, getting: 0, far: 0 }, flagged = 0;
-      picks.forEach(function (pr) {
-        var ink = inkOf(handwrite(skels[pr[0]], 1.0, false)); if (!ink) return;
-        var sc = GL.shape._scoreAll(ink, pr[1], glyphs), v = GL.shape._verdict(sc.me, sc.others);
-        n++; b[v.band]++; if (v.confusedWith === pr[0]) flagged++;
-      });
-      lines.push('  WRONG ' + label + ' (' + n + ' drawings): told close ' + Math.round(100 * b.close / n) + '% / getting there ' + Math.round(100 * b.getting / n) + '% / not close ' + Math.round(100 * b.far / n) + '%   correctly named the letter you drew ' + Math.round(100 * flagged / n) + '%');
-    }
-    var rp = [], lp = [];
-    for (var r = 0; r < 500; r++) { var a = glyphs[Math.floor(rnd() * glyphs.length)], b2 = glyphs[Math.floor(rnd() * glyphs.length)]; if (a !== b2) rp.push([a, b2]); }
-    pairs.forEach(function (p) { for (var t = 0; t < 6; t++) lp.push([p[0], p[1]]); });
-    wrongStats('random letter', rp); wrongStats('look-alike pair', lp);
-    out.push('tolerance cover=' + pp[0] + ' precise=' + pp[1] + NL + lines.join(NL));
+    document.getElementById('out').textContent = 'font loaded: ' + fontOk + NL + out.join(NL); document.title = 'done'; return;
+  }
+  [['tidy', 0.6], ['typical', 1.0], ['messy', 1.6]].forEach(function (cfg) {
+    var list = [], conf = 0;
+    sample.forEach(function (g) { for (var t = 0; t < 4; t++) { var r = run(handwrite(skels[g], cfg[1]), g, pool); if (r) { list.push(r); if (r.v.confusedWith) conf++; } } });
+    out.push('RIGHT letter, ' + cfg[0] + ' (' + list.length + ' drawings)' + NL + '  ' + stats(list) + NL + '  ' + bands(list) + NL + '  wrongly told "looks like another letter": ' + pc(conf, list.length));
   });
-  document.getElementById('out').textContent = out.join(NL + NL);
+  var wr = [], wflag = 0;
+  for (var r = 0; r < 240; r++) { var a = sample[Math.floor(rnd() * sample.length)], b = glyphs[Math.floor(rnd() * glyphs.length)]; if (a === b) continue; var res = run(handwrite(skels[a], 1.0), b, pool.concat([a])); if (res) { wr.push(res); if (res.v.confusedWith === a) wflag++; } }
+  out.push('WRONG letter drawn (' + wr.length + ' drawings, typical neatness)' + NL + '  ' + stats(wr) + NL + '  ' + bands(wr) + NL + '  correctly named the letter you drew: ' + pc(wflag, wr.length));
+  var lk = [], lflag = 0;
+  look.forEach(function (p) { for (var t = 0; t < 4; t++) { var res = run(handwrite(skels[p[0]], 1.0), p[1], pool.concat([p[0]])); if (res) { lk.push(res); if (res.v.confusedWith === p[0]) lflag++; } } });
+  out.push('WRONG look-alike pair (' + lk.length + ' drawings)' + NL + '  ' + stats(lk) + NL + '  ' + bands(lk) + NL + '  correctly named the letter you drew: ' + pc(lflag, lk.length));
+
+  var nl = [];
+  Object.keys(shapes).concat(['scribble']).forEach(function (nm) {
+    var list = []; for (var t = 0; t < (nm === 'scribble' ? 24 : 1); t++) { var st = nm === 'scribble' ? scribble() : shapes[nm]; sample.forEach(function (g) { var res = run(st, g, pool); if (res) list.push(res); }); }
+    var gs = list.map(function (x) { return x.g; }), ka = null;
+    if (nm !== 'scribble') { var rk = run(shapes[nm], 'ક', pool); ka = rk ? f1(rk.g) : '-'; }
+    nl.push('  ' + nm.padEnd(9) + 'vs ક: ' + (ka === null ? '  -' : ka.padStart(4)) + '   vs 20 letters: median ' + f1(q(gs, 0.5)) + '  best ' + f1(q(gs, 0.98)) + '   called getting-there-or-better: ' + pc(list.filter(function (x) { return x.v.band !== 'far'; }).length, list.length));
+  });
+  out.push('NOT a letter at all' + NL + nl.join(NL));
+  document.getElementById('out').textContent = 'Noto Sans Gujarati loaded: ' + fontOk + NL + NL + out.join(NL + NL);
   document.title = 'done';
 })();
 </script>

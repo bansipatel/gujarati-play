@@ -125,22 +125,72 @@ GL.shape = (function () {
     return { coverage: coverage, precision: precision, f: f };
   }
 
+  /* ---- The 0-10 grade ----
+     Both drawings are reduced to centerlines. For every point on one centerline we find the nearest point on the other,
+     and charge for (a) the distance and (b) running at a different angle. Averaged both ways, so missing parts and extra
+     marks both cost points. The raw number is then stretched onto 0-10 using values measured on simulated handwriting
+     (see tests/shape-sim.html): tidy tracing of the right letter lands near 9-10, and shapes that are not the letter land low. */
+  var G = { LAM: 4, CAP: 8, POWER: 2, RAW_LO: 0.4, RAW_HI: 7.2, R: 4, FAR: 5, FREE: 0.06, MISS_W: 3, STRAY_W: 0 };
+
+  function pointsOf(mask) { var p = []; for (var j = 0; j < mask.length; j++) if (mask[j]) p.push([j % N, Math.floor(j / N)]); return p; }
+  /* Local line direction (0..pi) at each point, from the points around it. */
+  function orientations(Pts, R) {
+    return Pts.map(function (p) {
+      var sx = 0, sy = 0, n = 0, i, q;
+      for (i = 0; i < Pts.length; i++) { q = Pts[i]; if (Math.abs(q[0] - p[0]) <= R && Math.abs(q[1] - p[1]) <= R) { sx += q[0]; sy += q[1]; n++; } }
+      if (n < 3) return -1;
+      var mx = sx / n, my = sy / n, cxx = 0, cyy = 0, cxy = 0;
+      for (i = 0; i < Pts.length; i++) { q = Pts[i]; if (Math.abs(q[0] - p[0]) <= R && Math.abs(q[1] - p[1]) <= R) { var dx = q[0] - mx, dy = q[1] - my; cxx += dx * dx; cyy += dy * dy; cxy += dx * dy; } }
+      var th = 0.5 * Math.atan2(2 * cxy, cxx - cyy); return th < 0 ? th + Math.PI : th;
+    });
+  }
+  function angleGap(a, b) { if (a < 0 || b < 0) return 0; var d = Math.abs(a - b); return d > Math.PI / 2 ? Math.PI - d : d; }   // 0..pi/2
+  function pathSet(mask) { var Pts = pointsOf(mask); return Pts.length < 8 ? null : { P: Pts, O: orientations(Pts, G.R) }; }
+  function pathOfTemplate(tpl) { return tpl.path || (tpl.path = pathSet(tpl.skel)); }
+
+  /* For each point of A: distance (plus angle penalty) to the nearest point of B. Returns the capped mean and the share
+     of points that have nothing close on the other side (FAR px or more). */
+  function directed(A, B) {
+    var tot = 0, far = 0, i, j;
+    for (i = 0; i < A.P.length; i++) {
+      var best = 1e9, bj = 0, px = A.P[i][0], py = A.P[i][1];
+      for (j = 0; j < B.P.length; j++) { var dx = px - B.P[j][0], dy = py - B.P[j][1], d = dx * dx + dy * dy; if (d < best) { best = d; bj = j; } }
+      var dist = Math.sqrt(best);
+      if (dist >= G.FAR) far++;
+      tot += Math.min(dist + G.LAM * angleGap(A.O[i], B.O[bj]) / (Math.PI / 2), G.CAP);
+    }
+    return { mean: tot / A.P.length, far: far / A.P.length };
+  }
+  function gradeOf(inkPath, tpl) {
+    var ref = pathOfTemplate(tpl); if (!ref || !inkPath) return 0;
+    var a = directed(inkPath, ref), b = directed(ref, inkPath);
+    var e = (a.mean + b.mean) / 2 / G.CAP;
+    var raw = 10 * Math.pow(Math.max(0, 1 - e), G.POWER);
+    var g = Math.max(0, Math.min(10, 10 * (raw - G.RAW_LO) / (G.RAW_HI - G.RAW_LO)));
+    // leaving out part of the letter (or adding a lot of stray ink) costs extra
+    var miss = Math.max(0, b.far - G.FREE), stray = Math.max(0, a.far - G.FREE);
+    return g * Math.max(0, 1 - G.MISS_W * miss - G.STRAY_W * stray);
+  }
+  var round1 = function (x) { return Math.round(x * 10) / 10; };
+
   function scoreAll(ink, targetGlyph, allGlyphs) {
     var di = distance(ink), me = measure(ink, di, template(targetGlyph)), others = [];
-    allGlyphs.forEach(function (g) { if (g !== targetGlyph) { var m = measure(ink, di, template(g)); others.push({ glyph: g, f: m.f }); } });
-    others.sort(function (a, b) { return b.f - a.f; });
+    var path = pathSet(thin(ink, N));
+    me.grade = round1(gradeOf(path, template(targetGlyph)));
+    allGlyphs.forEach(function (g) { if (g !== targetGlyph) others.push({ glyph: g, grade: gradeOf(path, template(g)) }); });
+    others.sort(function (a, b) { return b.grade - a.grade; });
     return { me: me, others: others, distInk: di };
   }
 
-  /* Plain-language verdict from the numbers. */
+  /* Plain-language verdict from the grade. */
   function verdict(me, others) {
-    var band = me.f >= 0.75 ? 'close' : me.f >= 0.55 ? 'getting' : 'far';
+    var gr = me.grade, band = gr >= 8.5 ? 'great' : gr >= 7 ? 'close' : gr >= 5 ? 'getting' : 'far';
     var best = others[0], confusedWith = null;
-    if (best && best.f >= 0.55 && best.f > me.f + 0.06 && me.f < 0.75) confusedWith = best.glyph;
+    if (best && best.grade >= 6 && best.grade > gr + 0.8 && gr < 7) confusedWith = best.glyph;
     var tips = [];
-    if (band !== 'close') {
-      if (me.coverage < me.precision - 0.12) tips.push('Part of the letter is missing. The orange areas show where the letter goes that your strokes did not reach.');
-      else if (me.precision < me.coverage - 0.12) tips.push('Some of your ink sits away from the letter shape. The red marks are strokes outside it.');
+    if (band === 'getting' || band === 'far') {
+      if (me.coverage < me.precision - 0.12) tips.push('Part of the letter is missing. The orange marks show where the letter goes that your strokes did not reach.');
+      else if (me.precision < me.coverage - 0.12) tips.push('Some of your ink sits away from the letter. The red marks are strokes outside it.');
       else tips.push('The overall shape is a little off. Look at the big letter again and try to match its curves and proportions.');
     }
     return { band: band, confusedWith: confusedWith, tips: tips };
@@ -162,15 +212,17 @@ GL.shape = (function () {
   function ready(glyph) {
     return document.fonts && document.fonts.load ? document.fonts.load('180px "Noto Sans Gujarati"', glyph).catch(function () {}) : Promise.resolve();
   }
-  function guideScale(glyph) { var len = Array.from(glyph).length; return len > 2 ? 0.4 : len > 1 ? 0.55 : 0.65; }
-  /* Font and origin that put the letter's ink box in the middle of an S x S square. */
+  /* Font and origin that put the letter's ink box in the middle of an S x S square, sized so the letter
+     fills about 72% of the square (a large target is easier to trace). */
   function layout(glyph, S) {
-    var g = makeCanvas(8, 8).getContext('2d'), fs = Math.round(S * guideScale(glyph)), m, w, h;
+    var g = makeCanvas(8, 8).getContext('2d'), fs = Math.round(S * 0.5), m, w, h;
     for (var k = 0; k < 2; k++) {
       g.font = '400 ' + fs + 'px ' + FONT; m = g.measureText(glyph);
       w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight; h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-      if (Math.max(w, h) > 0.9 * S) fs = Math.round(fs * 0.9 * S / Math.max(w, h)); else break;
+      fs = Math.max(8, Math.round(fs * 0.72 * S / Math.max(w, h, 1)));
     }
+    g.font = '400 ' + fs + 'px ' + FONT; m = g.measureText(glyph);
+    w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight; h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
     return { font: g.font, x: (S - w) / 2 + m.actualBoundingBoxLeft, y: (S - h) / 2 + m.actualBoundingBoxAscent };
   }
 
@@ -220,5 +272,5 @@ GL.shape = (function () {
     });
   }
 
-  return { params: P, thin: thin, ready: ready, layout: layout, centerline: centerline, check: check, _ink: inkMask, _template: template, _distance: distance, _measure: measure, _scoreAll: scoreAll, _verdict: verdict, N: N };
+  return { params: P, grading: G, thin: thin, ready: ready, layout: layout, centerline: centerline, check: check, _ink: inkMask, _template: template, _distance: distance, _measure: measure, _scoreAll: scoreAll, _verdict: verdict, N: N };
 })();

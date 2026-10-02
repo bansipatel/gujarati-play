@@ -36,14 +36,28 @@ The palette comes from the "Game Instruction Loop" slides: soft pink canvas, dar
 - **Install it:** in Safari tap Share, then "Add to Home Screen". It opens full-screen, works offline (service worker), and Safari is far less likely to clear your progress than for a normal tab.
 - **Back up progress:** Settings has a one-tap backup code you can paste into Notes or email to yourself, and restore on any device. Safari can clear site data it hasn't seen in a while, so this is worth doing.
 
-## Handwriting shape check
+## Handwriting shape check and 0-10 grade
 
-The writing pad has a **Check my shape** button. It scales your drawing and the font's version of the letter to the same size, reduces both to centerlines, and measures how much of the letter your strokes reach and how much of your ink lies on it. It then reports "Close match", "Getting there" or "Not close yet", shows a small picture (what you missed in orange, stray ink in red), and says so when your drawing is closer to a different letter.
+The writing pad has a **Check my shape** button. It gives a **grade out of 10, in 0.1 steps**, plus a verdict ("Very close" 8.5+, "Close" 7+, "Getting there" 5+, "Not close yet" below that), a small picture (what you missed in orange, stray ink in red), and a note when your drawing looks more like a different letter.
 
-It is deliberately modest:
-- It compares overall shape to **one typeface**. It cannot judge stroke order, direction, neatness or style, so a good letter in your own handwriting can score lower than a traced one.
-- I measured it on **simulated** handwriting (each letter's centerline stretched, rotated, sheared and wobbled; run `tests/shape-sim.html` through a local server to reproduce). Right letters were called "close" 95% of the time when tidy-to-typical and 75% when messy. A different, random letter was called "close" only 2% of the time. For genuinely look-alike pairs (ઇ/ઈ, ે/ૈ and similar) it wrongly said "close" 22% of the time and named the right letter 66% of the time.
-- Real hands are messier than the simulation, so expect it to be less accurate than those numbers. Treat it as a nudge, not a grade.
+How the grade works: your drawing and the font's version of the letter are scaled to the same size (so size and position don't matter) and reduced to centerlines. For every point on one path the code finds the nearest point on the other and charges for the distance and for running at a different angle, both ways, so missing parts and extra marks both cost points. Leaving out a chunk of the letter costs extra. The raw score is then stretched onto 0-10 using measurements on simulated drawings.
+
+I measured it on **simulated** drawings with the same font the app uses (each letter's centerline stretched, rotated, sheared and wobbled, plus drawings that are not letters; run `tests/shape-sim.html` through a local server to reproduce):
+
+| Drawing | Typical grade | Notes |
+|---|---|---|
+| Right letter, tidy | 9.2 | 69% rated "very close" |
+| Right letter, typical | 8.1 | 75% rated close or better |
+| Right letter, messy | 6.4 | spread from about 3 to 8 |
+| A different letter | 0.0 | 99% rated "not close"; the letter you actually drew was named correctly 83% of the time |
+| Look-alike pair (e.g. ઇ/ઈ) | 0.1 | 23% still rated "getting there" or better |
+| Not a letter: O, line, zigzag, wave, plus, scribble | 0 to 1 | none rated "getting there" |
+| An S drawn for ક | 3.9 | the Gujarati ક is genuinely S-shaped, so this is the hardest case |
+
+Limits, honestly:
+- It compares overall shape and direction of the pen path to **one typeface**. It cannot judge stroke order, neatness or style, so a good letter in your own handwriting can score lower than a traced one.
+- Real hands are messier than the simulation, so expect the real numbers to be a bit worse. Treat the grade as a guide, not a mark.
+- The pad's pen is deliberately thin (Fine / Medium / Bold, default Medium) and the guide letter is large, so the letter is easy to trace.
 
 ## Strokes view (what it shows, and what it doesn't)
 
