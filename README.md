@@ -36,6 +36,15 @@ The palette comes from the "Game Instruction Loop" slides: soft pink canvas, dar
 - **Install it:** in Safari tap Share, then "Add to Home Screen". It opens full-screen, works offline (service worker), and Safari is far less likely to clear your progress than for a normal tab.
 - **Back up progress:** Settings has a one-tap backup code you can paste into Notes or email to yourself, and restore on any device. Safari can clear site data it hasn't seen in a while, so this is worth doing.
 
+## Handwriting shape check
+
+The writing pad has a **Check my shape** button. It scales your drawing and the font's version of the letter to the same size, reduces both to centerlines, and measures how much of the letter your strokes reach and how much of your ink lies on it. It then reports "Close match", "Getting there" or "Not close yet", shows a small picture (what you missed in orange, stray ink in red), and says so when your drawing is closer to a different letter.
+
+It is deliberately modest:
+- It compares overall shape to **one typeface**. It cannot judge stroke order, direction, neatness or style, so a good letter in your own handwriting can score lower than a traced one.
+- I measured it on **simulated** handwriting (each letter's centerline stretched, rotated, sheared and wobbled; run `tests/shape-sim.html` through a local server to reproduce). Right letters were called "close" 95% of the time when tidy-to-typical and 75% when messy. A different, random letter was called "close" only 2% of the time. For genuinely look-alike pairs (ઇ/ઈ, ે/ૈ and similar) it wrongly said "close" 22% of the time and named the right letter 66% of the time.
+- Real hands are messier than the simulation, so expect it to be less accurate than those numbers. Treat it as a nudge, not a grade.
+
 ## What's inside
 
 - **12 short lessons** (5 new items each): consonants and their built-in "a", standalone vowels, vowel signs, the nasal dot, the joiner, and common joined letters. Each lesson unlocks after the previous one; any finished lesson can be replayed.
@@ -76,7 +85,7 @@ Letters, vowel signs, sound values and the notes about ઇ/ઈ, ઉ/ઊ, ફ, �
 ## Limitations
 
 - **Audio:** there are no recordings. The "Hear it" button appears only if your browser has a Gujarati text-to-speech voice (many desktops don't). Otherwise the app says so and suggests saying the word aloud. Synthesized voices may pronounce words imperfectly.
-- **Writing practice:** the pad records your strokes but does **not** judge handwriting, and no stroke-order guidance is included. Compare with the big reference letter by eye.
+- **Writing practice:** "Check my shape" gives rough shape feedback only (see below). It does not check stroke order, direction or neatness, and no stroke-order guidance is included.
 - **Not covered:** rare letters ઙ ઞ ઋ, loan-word signs ઑ ૉ, the visarga ઃ, and Gujarati digits.
 - **Fonts:** Google Fonts (Fraunces, Noto Sans Gujarati) load from the internet and are cached for offline use after the first visit; before that, the app falls back to system Gujarati fonts (Nirmala UI, Shruti, Gujarati Sangam MN).
 - **Updating:** after you change any file, bump `VERSION` in `sw.js` so installed copies pick up the update.

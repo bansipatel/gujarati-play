@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shape check simulation</title>
+<!--
+  Dev tool: measures how well the writing-pad shape check works on SIMULATED handwriting.
+  Serve the project folder (python -m http.server) and open /tests/shape-sim.html.
+  "Handwriting" = the centerline of each font letter, randomly stretched, rotated, sheared and wobbled,
+  sometimes with a chunk missing. Real hands are messier, so treat these numbers as an upper bound.
+-->
+<body style="font:14px/1.4 monospace;padding:1rem"><pre id="out">running...</pre>
+<script src="../js/data/items.js"></script>
+<script src="../js/shape.js"></script>
+<script>
+(async function () {
+  await document.fonts.load('180px "Noto Sans Gujarati"', 'ક');
+  var NL = String.fromCharCode(10);
+  var N = GL.shape.N;
+  var glyphs = GL.items.map(function (it) { return it.kind === 'sign' ? it.demo : it.id; });
+  var seed = 12345;
+  function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+  function rr(a, b) { return a + (b - a) * rnd(); }
+  function points(mask) { var pts = []; for (var j = 0; j < mask.length; j++) if (mask[j]) pts.push([j % N, Math.floor(j / N)]); return pts; }
+
+  // Simulated handwriting: distort the centerline; optionally drop a chunk. One dot per point, normalized 0..1.
+  function handwrite(skel, mess, dropChunk) {
+    var cx = N / 2, cy = N / 2;
+    var sx = rr(1 - 0.13 * mess, 1 + 0.13 * mess), sy = rr(1 - 0.13 * mess, 1 + 0.13 * mess);
+    var th = rr(-0.1, 0.1) * mess, sh = rr(-0.1, 0.1) * mess, ph1 = rr(0, 6.28), ph2 = rr(0, 6.28), amp = 1.1 * mess;
+    var pts = skel.map(function (p) {
+      var x = p[0] - cx, y = p[1] - cy; x += sh * y;
+      var xr = x * Math.cos(th) - y * Math.sin(th), yr = x * Math.sin(th) + y * Math.cos(th);
+      xr *= sx; yr *= sy; xr += amp * Math.sin(p[1] / 7 + ph1); yr += amp * Math.sin(p[0] / 7 + ph2);
+      return [(xr + cx) / N, (yr + cy) / N];
+    });
+    if (dropChunk) { var a = pts[Math.floor(rnd() * pts.length)]; pts = pts.filter(function (p) { return Math.hypot(p[0] - a[0], p[1] - a[1]) > 0.16; }); }
+    return pts.map(function (p) { return [[p[0], p[1], 0.5]]; });
+  }
+  var inkOf = function (strokes) { return GL.shape._ink(strokes); };
+  var skels = {};
+  glyphs.forEach(function (g) { skels[g] = points(GL.shape._template(g).skel); });
+
+  function q(a, p) { a = a.slice().sort(function (x, y) { return x - y; }); return a[Math.min(a.length - 1, Math.max(0, Math.floor(p * a.length)))]; }
+  function f2(x) { return x.toFixed(2); }
+  var pairs = GL.confusables.map(function (c) {
+    var f = function (id) { var it = GL.itemById[id]; return it.kind === 'sign' ? it.demo : id; };
+    return [f(c[0]), f(c[1])];
+  });
+
+  var out = [], T = 5;
+  var sweep = window.location.search.indexOf('one') > -1 ? [[3, 3]] : [[2, 2], [3, 3], [3, 4], [4, 4]];
+  sweep.forEach(function (pp) {
+    GL.shape.params.DC = pp[0]; GL.shape.params.DP = pp[1];
+    seed = 777;
+    var res = {}, lines = [];
+    [['tidy', 0.6, false], ['typical', 1.0, false], ['messy', 1.6, false], ['missing', 1.0, true]].forEach(function (cfg) {
+      var f = [], top1 = 0, n = 0, bands = { close: 0, getting: 0, far: 0 }, conf = 0;
+      glyphs.forEach(function (g) {
+        for (var t = 0; t < T; t++) {
+          var ink = inkOf(handwrite(skels[g], cfg[1], cfg[2])); if (!ink) continue;
+          var sc = GL.shape._scoreAll(ink, g, glyphs), v = GL.shape._verdict(sc.me, sc.others);
+          f.push(sc.me.f); n++; if (sc.me.f >= sc.others[0].f) top1++; bands[v.band]++; if (v.confusedWith) conf++;
+        }
+      });
+      lines.push('  RIGHT ' + cfg[0] + ': median ' + f2(q(f, 0.5)) + '  told close ' + Math.round(100 * bands.close / n) + '% / getting there ' + Math.round(100 * bands.getting / n) + '% / not close ' + Math.round(100 * bands.far / n) + '%  wrongly "looks like another letter" ' + Math.round(100 * conf / n) + '%');
+    });
+    function wrongStats(label, picks) {
+      var n = 0, b = { close: 0, getting: 0, far: 0 }, flagged = 0;
+      picks.forEach(function (pr) {
+        var ink = inkOf(handwrite(skels[pr[0]], 1.0, false)); if (!ink) return;
+        var sc = GL.shape._scoreAll(ink, pr[1], glyphs), v = GL.shape._verdict(sc.me, sc.others);
+        n++; b[v.band]++; if (v.confusedWith === pr[0]) flagged++;
+      });
+      lines.push('  WRONG ' + label + ' (' + n + ' drawings): told close ' + Math.round(100 * b.close / n) + '% / getting there ' + Math.round(100 * b.getting / n) + '% / not close ' + Math.round(100 * b.far / n) + '%   correctly named the letter you drew ' + Math.round(100 * flagged / n) + '%');
+    }
+    var rp = [], lp = [];
+    for (var r = 0; r < 500; r++) { var a = glyphs[Math.floor(rnd() * glyphs.length)], b2 = glyphs[Math.floor(rnd() * glyphs.length)]; if (a !== b2) rp.push([a, b2]); }
+    pairs.forEach(function (p) { for (var t = 0; t < 6; t++) lp.push([p[0], p[1]]); });
+    wrongStats('random letter', rp); wrongStats('look-alike pair', lp);
+    out.push('tolerance cover=' + pp[0] + ' precise=' + pp[1] + NL + lines.join(NL));
+  });
+  document.getElementById('out').textContent = out.join(NL + NL);
+  document.title = 'done';
+})();
+</script>

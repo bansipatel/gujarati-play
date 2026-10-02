@@ -36,11 +36,44 @@ GL.writing = (function () {
       guideBtn.textContent = showGuide ? 'Faint guide: on' : 'Faint guide: off';
       ghost.hidden = !showGuide;
     } }, 'Faint guide: on');
-    var doneBtn = h('button', { type: 'button', class: 'btn primary', onclick: function () {
+    var doneBtn = h('button', { type: 'button', class: 'btn', onclick: function () { logPractice(); } }, 'I practiced it');
+    var checkBtn = h('button', { type: 'button', class: 'btn primary', id: 'check-btn', onclick: runCheck }, 'Check my shape');
+    var resultBox = h('div', { class: 'shape-result', id: 'shape-result', 'aria-live': 'polite', hidden: true });
+    var allGlyphs = items.map(function (it) { return GL.ui.glyphOf(it); });
+
+    function logPractice() {
       var id = items[cur].id;
-      if (!practiced[id]) { practiced[id] = 1; GL.ui.played(); GL.ui.award(3, 'Practice logged'); }
-      else GL.ui.toast('Already logged. Keep going.');
-    } }, 'I practiced it');
+      if (!practiced[id]) { practiced[id] = 1; GL.ui.played(); GL.ui.award(3, 'Practice logged'); return true; }
+      GL.ui.toast('Already logged. Keep going.'); return false;
+    }
+    function hideResult() { resultBox.hidden = true; resultBox.innerHTML = ''; }
+    var CHECKING = false;
+    function runCheck() {
+      if (CHECKING) return;
+      if (!strokes.length) { GL.ui.toast('Write the letter first'); return; }
+      CHECKING = true; checkBtn.disabled = true;
+      var it = items[cur], glyph = GL.ui.glyphOf(it);
+      GL.shape.check(strokes, glyph, allGlyphs).then(function (res) {
+        CHECKING = false; checkBtn.disabled = false; resultBox.innerHTML = ''; resultBox.hidden = false;
+        if (!res.ok) { resultBox.appendChild(h('p', null, 'Write the whole letter in the box first, then check.')); return; }
+        var v = res.verdict;
+        var title = { close: 'Close match', getting: 'Getting there', far: 'Not close yet' }[v.band];
+        var msg = { close: 'Your shape lines up well with the letter.', getting: 'You have the general idea. A few parts are off.', far: 'This does not match the letter yet. Compare with the big letter and try again.' }[v.band];
+        var img = res.overlay; img.className = 'shape-img'; img.setAttribute('role', 'img'); img.setAttribute('aria-label', 'Your drawing compared with the letter');
+        var near = v.confusedWith ? items.filter(function (x) { return GL.ui.glyphOf(x) === v.confusedWith; })[0] : null;
+        resultBox.appendChild(h('div', { class: 'shape-body' },
+          h('div', { class: 'shape-text' },
+            h('p', { class: 'label' }, 'Shape check'),
+            h('h3', { class: 'band ' + v.band }, title),
+            h('p', null, msg),
+            near ? h('p', null, 'Your shape is a bit closer to ', gu(v.confusedWith), near.roman ? ' (' + near.roman + ')' : '', ' than to ', gu(glyph), '.') : null,
+            v.tips.map(function (t) { return h('p', { class: 'muted' }, t); }),
+            h('p', { class: 'key' }, h('span', null, h('i', { class: 'k-letter' }), 'the letter'), h('span', null, h('i', { class: 'k-miss' }), 'not reached'), h('span', null, h('i', { class: 'k-ink' }), 'your ink'), h('span', null, h('i', { class: 'k-stray' }), 'outside the letter'))),
+          img));
+        resultBox.appendChild(h('p', { class: 'fine' }, 'Shape match only. This compares the overall outline to the font\u2019s letter. It cannot see stroke order, direction or neatness, and a good letter in your own handwriting can score lower than a traced one.'));
+        if (v.band !== 'far') logPractice();
+      });
+    }
     var status = h('p', { class: 'muted', 'aria-live': 'polite', id: 'stroke-count' });
 
     function size() {
@@ -64,7 +97,7 @@ GL.writing = (function () {
         if (s.length === 1) { ctx.beginPath(); ctx.moveTo(s[0][0] * w, s[0][1] * w); ctx.lineTo(s[0][0] * w + 0.1, s[0][1] * w); ctx.lineWidth = width(w, s[0][2]); ctx.stroke(); }
         for (var i = 1; i < s.length; i++) seg(s[i - 1], s[i], w);
       });
-      undoBtn.disabled = !strokes.length; clearBtn.disabled = !strokes.length;
+      undoBtn.disabled = !strokes.length; clearBtn.disabled = !strokes.length; checkBtn.disabled = !strokes.length || CHECKING;
       status.textContent = strokes.length ? strokes.length + (strokes.length === 1 ? ' stroke drawn' : ' strokes drawn') : 'Nothing drawn yet.';
     }
     function pt(e) {
@@ -72,8 +105,8 @@ GL.writing = (function () {
       var p = e.pointerType === 'pen' ? (e.pressure || 0.5) : 0.5;   // mouse and finger have no real pressure
       return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, p];
     }
-    function undo() { strokes.pop(); redraw(); }
-    function clearAll() { strokes = []; redraw(); }
+    function undo() { strokes.pop(); hideResult(); redraw(); }
+    function clearAll() { strokes = []; hideResult(); redraw(); }
 
     canvas.addEventListener('pointerdown', function (e) {
       if (activeId !== null) return;                                   // one pointer at a time
@@ -81,7 +114,7 @@ GL.writing = (function () {
       if (e.pointerType === 'pen') penUntil = Date.now() + 1500;
       e.preventDefault(); activeId = e.pointerId;
       try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
-      drawing = [pt(e)]; strokes.push(drawing); redraw();
+      drawing = [pt(e)]; strokes.push(drawing); hideResult(); redraw();
     });
     canvas.addEventListener('pointermove', function (e) {
       if (!drawing || e.pointerId !== activeId) return;
@@ -109,7 +142,7 @@ GL.writing = (function () {
     GL.ui.onCleanup(function () { document.removeEventListener('keydown', onKey); if (ro) ro.disconnect(); else window.removeEventListener('resize', size); });
 
     function go(i) {
-      cur = (i + items.length) % items.length; strokes = []; select.value = cur;
+      cur = (i + items.length) % items.length; strokes = []; hideResult(); select.value = cur;
       var it = items[cur];
       refBox.innerHTML = '';
       refBox.appendChild(h('div', { class: 'bigglyph xl' }, gu(GL.ui.glyphOf(it))));
@@ -129,10 +162,10 @@ GL.writing = (function () {
             h('button', { type: 'button', class: 'btn small', onclick: function () { go(cur - 1); } }, 'Previous'),
             h('button', { type: 'button', class: 'btn small', onclick: function () { go(cur + 1); } }, 'Next')),
           refBox,
-          h('div', { class: 'row tools' }, undoBtn, clearBtn, guideBtn, doneBtn)),
-        h('div', { class: 'pad-col' }, wrap, status,
+          h('div', { class: 'row tools' }, undoBtn, clearBtn, guideBtn, checkBtn, doneBtn)),
+        h('div', { class: 'pad-col' }, wrap, status, resultBox,
           h('p', { class: 'pen-hint' }, 'Works with a finger, Apple Pencil or mouse. With a Pencil you can rest your palm on the screen.'))),
-      h('p', { class: 'note' }, 'This pad cannot check your handwriting. Compare your letter with the big one by eye. Stroke order is not shown here; a Gujarati teacher or a printed writing book is the best guide for that. Ctrl+Z also undoes.')));
+      h('p', { class: 'note' }, '"Check my shape" compares your drawing\u2019s overall outline with the letter, at any size and position. It gives rough feedback only. Stroke order is not shown or checked here; a Gujarati teacher or a printed writing book is the best guide for that. Ctrl+Z also undoes.')));
     go(cur);
   }
   return { view: view };
