@@ -10,7 +10,7 @@ GL.writing = (function () {
   function view(root, startId) {
     var items = GL.items;
     var cur = Math.max(0, items.map(function (i) { return i.id; }).indexOf(startId));
-    var strokes = [], drawing = null, activeId = null, penUntil = 0, showGuide = true;
+    var strokes = [], drawing = null, activeId = null, penUntil = 0, guideMode = 'outline', guideToken = 0;
 
     var refBox = h('div', { class: 'ref-card' });
     var select = h('select', { id: 'letter-select', 'aria-label': 'Choose a letter to practice', onchange: function () { go(+select.value); } });
@@ -25,17 +25,40 @@ GL.writing = (function () {
       select.appendChild(og);
     });
 
-    var ghost = h('div', { class: 'ghost gu', lang: 'gu', 'aria-hidden': 'true' });
+    var guide = h('canvas', { class: 'guide', 'aria-hidden': 'true' });
     var canvas = h('canvas', { class: 'pad', tabindex: 0, role: 'img', 'aria-label': 'Drawing area. Use a finger, Apple Pencil, stylus or mouse to write the letter.' });
-    var wrap = h('div', { class: 'pad-wrap' }, ghost, canvas);
+    var wrap = h('div', { class: 'pad-wrap' }, guide, canvas);
     var ctx = canvas.getContext('2d');
     var undoBtn = h('button', { type: 'button', class: 'btn', id: 'undo-btn', onclick: undo }, 'Undo');
     var clearBtn = h('button', { type: 'button', class: 'btn', id: 'clear-btn', onclick: clearAll }, 'Clear');
-    var guideBtn = h('button', { type: 'button', class: 'btn ghost', 'aria-pressed': 'true', onclick: function () {
-      showGuide = !showGuide; guideBtn.setAttribute('aria-pressed', String(showGuide));
-      guideBtn.textContent = showGuide ? 'Faint guide: on' : 'Faint guide: off';
-      ghost.hidden = !showGuide;
-    } }, 'Faint guide: on');
+    var MODES = [['outline', 'Outline'], ['centerline', 'Strokes'], ['off', 'Off']];
+    var modeBtns = MODES.map(function (m) { return h('button', { type: 'button', class: 'seg', 'aria-pressed': String(m[0] === guideMode), onclick: function () { setMode(m[0]); } }, m[1]); });
+    var guideBtn = h('div', { class: 'seg-group', role: 'group', 'aria-label': 'Guide behind the pad' }, h('span', { class: 'seg-label' }, 'Guide'), modeBtns);
+    var guideNote = h('p', { class: 'pen-hint', hidden: true }, 'Strokes view: the thin path the pen covers, with separate pieces in different colors. It comes from the letter\u2019s shape only. Stroke order and direction are not shown, because no trustworthy source was available for them. A Gujarati writer or a handwriting book is the place for those.');
+    function setMode(m) {
+      guideMode = m; modeBtns.forEach(function (b, i) { b.setAttribute('aria-pressed', String(MODES[i][0] === m)); });
+      guideNote.hidden = m !== 'centerline'; drawGuide();
+    }
+    var PIECE_COLORS = ['#6d28b8', '#c2570f', '#0f766e', '#be185d', '#1d4ed8', '#4d7c0f'];
+    function drawGuide() {
+      var w = wrap.clientWidth || 300, dpr = Math.min(window.devicePixelRatio || 1, 3), token = ++guideToken;
+      guide.width = Math.round(w * dpr); guide.height = guide.width;
+      var g = guide.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, w);
+      if (guideMode === 'off') return;
+      var glyph = GL.ui.glyphOf(items[cur]), mode = guideMode;
+      GL.shape.ready(glyph).then(function () {
+        if (token !== guideToken) return;
+        var L = GL.shape.layout(glyph, w);
+        g.font = L.font; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+        g.fillStyle = mode === 'outline' ? 'rgba(145, 73, 220, .15)' : 'rgba(145, 73, 220, .09)'; g.fillText(glyph, L.x, L.y);
+        if (mode !== 'centerline') return;
+        GL.shape.centerline(glyph).then(function (cl) {
+          if (token !== guideToken) return;
+          var r = Math.max(2, w * 0.0085);
+          cl.pts.forEach(function (p) { g.fillStyle = PIECE_COLORS[p[2] % PIECE_COLORS.length]; g.beginPath(); g.arc(p[0] * w, p[1] * w, r, 0, 6.2832); g.fill(); });
+        });
+      });
+    }
     var doneBtn = h('button', { type: 'button', class: 'btn', onclick: function () { logPractice(); } }, 'I practiced it');
     var checkBtn = h('button', { type: 'button', class: 'btn primary', id: 'check-btn', onclick: runCheck }, 'Check my shape');
     var resultBox = h('div', { class: 'shape-result', id: 'shape-result', 'aria-live': 'polite', hidden: true });
@@ -80,9 +103,7 @@ GL.writing = (function () {
       var w = wrap.clientWidth || 300, dpr = Math.min(window.devicePixelRatio || 1, 3);
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var len = Array.from(GL.ui.glyphOf(items[cur])).length;
-      ghost.style.fontSize = Math.round(w * (len > 2 ? 0.4 : len > 1 ? 0.55 : 0.65)) + 'px';
-      redraw();
+      redraw(); drawGuide();
     }
     function width(w, p) { return Math.max(4, w * 0.034) * (0.45 + 1.1 * p); }
     function seg(a, b, w) {
@@ -149,7 +170,6 @@ GL.writing = (function () {
       refBox.appendChild(h('p', { class: 'sound' }, GL.ui.hint(it.roman) || h('span', { class: 'muted' }, 'Hint hidden')));
       refBox.appendChild(h('p', { class: 'refword' }, GL.ui.hint(it.word.roman), ' ', h('span', { class: 'en' }, it.word.en)));
       if (GL.store.taughtIds().indexOf(it.id) === -1) refBox.appendChild(h('p', { class: 'note' }, 'Coming up in lesson ' + GL.lessonOfItem[it.id] + '. A sneak peek is fine.'));
-      ghost.textContent = GL.ui.glyphOf(it); ghost.hidden = !showGuide;
       size();
     }
 
@@ -163,7 +183,7 @@ GL.writing = (function () {
             h('button', { type: 'button', class: 'btn small', onclick: function () { go(cur + 1); } }, 'Next')),
           refBox,
           h('div', { class: 'row tools' }, undoBtn, clearBtn, guideBtn, checkBtn, doneBtn)),
-        h('div', { class: 'pad-col' }, wrap, status, resultBox,
+        h('div', { class: 'pad-col' }, wrap, guideNote, status, resultBox,
           h('p', { class: 'pen-hint' }, 'Works with a finger, Apple Pencil or mouse. With a Pencil you can rest your palm on the screen.'))),
       h('p', { class: 'note' }, '"Check my shape" compares your drawing\u2019s overall outline with the letter, at any size and position. It gives rough feedback only. Stroke order is not shown or checked here; a Gujarati teacher or a printed writing book is the best guide for that. Ctrl+Z also undoes.')));
     go(cur);

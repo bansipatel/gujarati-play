@@ -47,24 +47,25 @@ GL.shape = (function () {
   }
 
   /* Zhang-Suen thinning: reduces the font's thick strokes to a one-pixel centerline. */
-  function thin(mask) {
+  function thin(mask, n) {
+    n = n || N;
     var m = Uint8Array.from(mask), changed = true;
     function nb(x, y) {
-      var g = function (a, b) { return (a < 0 || b < 0 || a >= N || b >= N) ? 0 : m[b * N + a]; };
+      var g = function (a, b) { return (a < 0 || b < 0 || a >= n || b >= n) ? 0 : m[b * n + a]; };
       return [g(x, y - 1), g(x + 1, y - 1), g(x + 1, y), g(x + 1, y + 1), g(x, y + 1), g(x - 1, y + 1), g(x - 1, y), g(x - 1, y - 1)];
     }
     while (changed) {
       changed = false;
       for (var step = 0; step < 2; step++) {
         var del = [];
-        for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
-          if (!m[y * N + x]) continue;
+        for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+          if (!m[y * n + x]) continue;
           var p = nb(x, y), B = p.reduce(function (a, b) { return a + b; }, 0);
           if (B < 2 || B > 6) continue;
           var A = 0; for (var i = 0; i < 8; i++) if (p[i] === 0 && p[(i + 1) % 8] === 1) A++;
           if (A !== 1) continue;
           if (step === 0 ? (p[0] * p[2] * p[4] || p[2] * p[4] * p[6]) : (p[0] * p[2] * p[6] || p[0] * p[4] * p[6])) continue;
-          del.push(y * N + x);
+          del.push(y * n + x);
         }
         del.forEach(function (i) { m[i] = 0; });
         if (del.length) changed = true;
@@ -85,7 +86,7 @@ GL.shape = (function () {
     var bw = Math.max(1, x1 - x0 + 1), bh = Math.max(1, y1 - y0 + 1), sc = FIT / Math.max(bw, bh);
     s.imageSmoothingQuality = 'high';
     s.drawImage(big, x0, y0, bw, bh, (N - bw * sc) / 2, (N - bh * sc) / 2, bw * sc, bh * sc);
-    var mask = maskOf(small, 110), skel = thin(mask), count = 0;
+    var mask = maskOf(small, 110), skel = thin(mask, N), count = 0;
     for (var i = 0; i < skel.length; i++) count += skel[i];
     return (templates[glyph] = { mask: mask, skel: skel, sdist: distance(skel), count: count });
   }
@@ -157,6 +158,57 @@ GL.shape = (function () {
     return c;
   }
 
+  /* ---- Guide drawing for the pad: the same letter placement is used for the outline and the centerline ---- */
+  function ready(glyph) {
+    return document.fonts && document.fonts.load ? document.fonts.load('180px "Noto Sans Gujarati"', glyph).catch(function () {}) : Promise.resolve();
+  }
+  function guideScale(glyph) { var len = Array.from(glyph).length; return len > 2 ? 0.4 : len > 1 ? 0.55 : 0.65; }
+  /* Font and origin that put the letter's ink box in the middle of an S x S square. */
+  function layout(glyph, S) {
+    var g = makeCanvas(8, 8).getContext('2d'), fs = Math.round(S * guideScale(glyph)), m, w, h;
+    for (var k = 0; k < 2; k++) {
+      g.font = '400 ' + fs + 'px ' + FONT; m = g.measureText(glyph);
+      w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight; h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+      if (Math.max(w, h) > 0.9 * S) fs = Math.round(fs * 0.9 * S / Math.max(w, h)); else break;
+    }
+    return { font: g.font, x: (S - w) / 2 + m.actualBoundingBoxLeft, y: (S - h) / 2 + m.actualBoundingBoxAscent };
+  }
+
+  /* The letter's centerline: the thin path the pen would cover, split into separate pieces (connected parts).
+     This is derived from the font's shape only. It says nothing about stroke order or direction. */
+  var centerlines = {};
+  function centerline(glyph) {
+    if (centerlines[glyph]) return centerlines[glyph];
+    return (centerlines[glyph] = ready(glyph).then(function () {
+      var S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), L = layout(glyph, S);
+      g.font = L.font; g.textBaseline = 'alphabetic'; g.textAlign = 'left'; g.fillStyle = '#000'; g.fillText(glyph, L.x, L.y);
+      var sk = thin(maskOf(c, 110), S), comp = new Int16Array(S * S).fill(-1), sizes = [], i, j;
+      var nbrs = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+      for (i = 0; i < S * S; i++) {                         // label connected pieces
+        if (!sk[i] || comp[i] >= 0) continue;
+        var id = sizes.length, stack = [i], n = 0; comp[i] = id;
+        while (stack.length) {
+          var cur = stack.pop(), cx = cur % S, cy = (cur - cx) / S; n++;
+          nbrs.forEach(function (d) { var x = cx + d[0], y = cy + d[1]; if (x < 0 || y < 0 || x >= S || y >= S) return; var q = y * S + x; if (sk[q] && comp[q] < 0) { comp[q] = id; stack.push(q); } });
+        }
+        sizes.push(n);
+      }
+      for (var pass = 0; pass < 6; pass++) {               // trim tiny spurs left by thinning (long pieces only, so dots survive)
+        var drop = [];
+        for (i = 0; i < S * S; i++) {
+          if (!sk[i] || sizes[comp[i]] < 50) continue;
+          var x0 = i % S, y0 = (i - x0) / S, cnt = 0;
+          nbrs.forEach(function (d) { var x = x0 + d[0], y = y0 + d[1]; if (x >= 0 && y >= 0 && x < S && y < S && sk[y * S + x]) cnt++; });
+          if (cnt <= 1) drop.push(i);
+        }
+        drop.forEach(function (q) { sk[q] = 0; });
+      }
+      var pts = [], remap = {}, next = 0;
+      for (j = 0; j < S * S; j++) if (sk[j]) { var cid = comp[j]; if (remap[cid] === undefined) remap[cid] = next++; pts.push([(j % S) / S, Math.floor(j / S) / S, remap[cid]]); }
+      return { pts: pts, pieces: next };
+    }));
+  }
+
   /* Public: resolves to {ok:false} if there is too little drawing, else scores, verdict and overlay. */
   function check(strokes, targetGlyph, allGlyphs) {
     var fonts = document.fonts && document.fonts.load ? document.fonts.load('180px "Noto Sans Gujarati"', targetGlyph).catch(function () {}) : Promise.resolve();
@@ -168,5 +220,5 @@ GL.shape = (function () {
     });
   }
 
-  return { params: P, thin: thin, check: check, _ink: inkMask, _template: template, _distance: distance, _measure: measure, _scoreAll: scoreAll, _verdict: verdict, N: N };
+  return { params: P, thin: thin, ready: ready, layout: layout, centerline: centerline, check: check, _ink: inkMask, _template: template, _distance: distance, _measure: measure, _scoreAll: scoreAll, _verdict: verdict, N: N };
 })();

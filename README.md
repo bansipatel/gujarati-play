@@ -45,6 +45,12 @@ It is deliberately modest:
 - I measured it on **simulated** handwriting (each letter's centerline stretched, rotated, sheared and wobbled; run `tests/shape-sim.html` through a local server to reproduce). Right letters were called "close" 95% of the time when tidy-to-typical and 75% when messy. A different, random letter was called "close" only 2% of the time. For genuinely look-alike pairs (ઇ/ઈ, ે/ૈ and similar) it wrongly said "close" 22% of the time and named the right letter 66% of the time.
 - Real hands are messier than the simulation, so expect it to be less accurate than those numbers. Treat it as a nudge, not a grade.
 
+## Strokes view (what it shows, and what it doesn't)
+
+Next to the pad's guide there is an **Outline / Strokes / Off** switch. *Strokes* draws each letter's **centerline**: the thin path a pen would cover, with separate pieces in different colors (a dot or a vowel sign is its own piece). It is computed from the font's shape, so you can see the skeleton of the letter while you write over it.
+
+It deliberately does **not** show stroke order or direction. I looked for a reliable source and did not find one: the one open dataset I found generated its strokes automatically from fonts (so the order is a guess) and is GPL-licensed, which would also affect this project's license. Showing guessed order as if it were correct would be worse than showing none. If you want real stroke order, the dependable route is to record it from a fluent Gujarati writer; the pad already captures ordered strokes, so a small "record a letter" tool could export them as data.
+
 ## What's inside
 
 - **12 short lessons** (5 new items each): consonants and their built-in "a", standalone vowels, vowel signs, the nasal dot, the joiner, and common joined letters. Each lesson unlocks after the previous one; any finished lesson can be replayed.
