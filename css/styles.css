@@ -137,6 +137,29 @@ body.title-mode main { max-width: none; padding: 0; }
 .title-hero h1 { font-size: clamp(2.4rem, 8vw, 3.4rem); color: #fff; margin: 0 0 .3rem; text-shadow: 0 2px 18px rgba(42, 24, 56, .35); }
 .title-hero p { margin: 0; color: rgba(255, 255, 255, .95); font-size: 1.1rem; text-shadow: 0 1px 10px rgba(42, 24, 56, .4); }
 .menu { display: grid; gap: .7rem; margin-top: 1rem; }
+
+/* confetti, flash and floating letters (after the FinalScoring reveal) */
+.cf-field { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.cf-burst-layer { z-index: 5; }
+.cf { position: absolute; top: -8%; width: 9px; height: 15px; border-radius: 2px; opacity: 0; animation: cf-fall linear infinite; }
+.cf.burst { animation: cf-burst 2.4s ease-out forwards; }
+.cf-flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 38%, rgba(255, 209, 102, .55), transparent 62%); opacity: 0; animation: cf-flash 1.6s ease-out; }
+@keyframes cf-fall { 0% { transform: translate(0, -8vh) rotate(0); opacity: 0; } 8% { opacity: .85; } 50% { transform: translate(10px, 50vh) rotate(180deg); } 92% { opacity: .85; } 100% { transform: translate(-8px, 108vh) rotate(360deg); opacity: 0; } }
+@keyframes cf-burst { 0% { transform: translate(0, 0) rotate(0) scale(.6); opacity: 0; } 12% { opacity: 1; } 100% { transform: var(--end) rotate(540deg) scale(1); opacity: 0; } }
+@keyframes cf-flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+.title-hero-wrap { position: relative; }
+.title-deco { position: absolute; z-index: 2; font-family: var(--gu); font-weight: 700; line-height: 1; color: var(--purple); filter: drop-shadow(0 4px 8px rgba(85, 39, 92, .25)); opacity: 0; animation: deco-in .5s ease both, deco-bob ease-in-out infinite; pointer-events: none; }
+.title-deco.d1 { top: -22px; left: -18px; font-size: 2.6rem; animation-duration: .5s, 3.2s; animation-delay: .1s, .1s; color: #9149dc; }
+.title-deco.d2 { top: -26px; right: -14px; font-size: 2.2rem; animation-duration: .5s, 3.6s; animation-delay: .4s, .4s; color: #f28a4b; }
+.title-deco.d3 { bottom: -20px; left: -12px; font-size: 2.1rem; animation-duration: .5s, 3.4s; animation-delay: .7s, .7s; color: #bc69a6; }
+.title-deco.d4 { bottom: -24px; right: -20px; font-size: 2.6rem; animation-duration: .5s, 3.9s; animation-delay: .2s, .2s; color: #e0a526; }
+@keyframes deco-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes deco-bob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
+.title-hero { animation: shimmer 9s ease infinite, pop .7s cubic-bezier(.34, 1.56, .64, 1) both, glow 2.4s ease-in-out infinite; }
+.title-hero::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid rgba(255, 255, 255, .6); animation: ring 2.2s ease-out infinite; pointer-events: none; }
+@keyframes glow { 0%, 100% { box-shadow: 0 14px 34px rgba(157, 74, 194, .32); } 50% { box-shadow: 0 18px 42px rgba(242, 138, 75, .42); } }
+@keyframes ring { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(1.06); opacity: 0; } }
+body.fx-calm .title-deco { opacity: 1; } body.fx-calm .cf-field { display: none; }
 .menu-btn { text-align: left; font: inherit; display: grid; gap: .15rem; min-height: 78px; padding: 1rem 1.3rem; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 20px; cursor: pointer; transition: transform .1s, border-color .15s; }
 .menu-btn:active { transform: scale(.985); }
 @media (hover: hover) { .menu-btn:hover { border-color: var(--purple); } }
@@ -357,7 +380,7 @@ dialog::backdrop { background: rgba(42, 24, 56, .5); }
 @keyframes shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes fall { 0% { transform: translate(0, -10%) rotate(0); opacity: 0; } 10% { opacity: .9; } 100% { transform: translate(-8px, 300px) rotate(360deg); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } .confetti { display: none; } }
+body.fx-calm *, body.fx-calm *::before, body.fx-calm *::after { transition: none !important; animation: none !important; } body.fx-calm .confetti { display: none; }
 .refword-stack { margin: .2rem 0 .6rem; padding-top: .7rem; border-top: 1px solid var(--line); }
 .refword-gu { font-family: var(--gu); font-size: 2.7rem; line-height: 1.35; color: var(--glyph); } .refword-gu .gu { font-size: inherit; }
 .refword { font-size: 1.15rem; margin: 0; color: var(--muted); } .refword .roman { font-family: var(--serif); font-size: 1.35rem; margin-right: .15rem; }

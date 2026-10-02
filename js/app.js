@@ -32,8 +32,14 @@ GL.app = (function () {
   }
 
   /* ---------- Title screen (start menu) ---------- */
-  function enterApp() {
+  var celebrateNext = false;
+  /* Fire a confetti burst once the screen has been placed. where() returns [x, y] in the viewport. */
+  function celebrateSoon(where) {
+    setTimeout(function () { var el = document.querySelector('.title-screen, .home'); if (!el) return; var p = where(); GL.ui.burst(p[0], p[1], 30); }, 350);
+  }
+  function enterApp(celebrate) {
     try { window.sessionStorage.setItem('gp.entered', '1'); } catch (e) { /* ignore */ }
+    celebrateNext = !!celebrate;
     if (location.hash === '#/' || location.hash === '') render(); else location.hash = '#/';
   }
   function hasEntered() { try { return !!window.sessionStorage.getItem('gp.entered'); } catch (e) { return false; } }
@@ -47,24 +53,30 @@ GL.app = (function () {
     var syncOn = !!(GL.sync && GL.sync.available()), linked = !!(GL.sync && GL.sync.linked());
     var opts = [];
     if (linked) {
-      opts.push(menuBtn('title-continue', 'Continue', 'Your progress is saved to the cloud. Pick up where you left off.', enterApp, true));
+      opts.push(menuBtn('title-continue', 'Continue', 'Pick up where you left off. Your progress is saved to the cloud.', function () { enterApp(false); }, true));
       opts.push(menuBtn('title-mycode', 'My code', 'See or copy your private code.', function () { openCodeDialog('show', null); }));
     } else {
-      opts.push(menuBtn('title-play', hasLocal ? 'Resume on this device' : 'Start playing', 'Progress stays on this device only. Nothing goes to the cloud.', enterApp, true));
+      opts.push(menuBtn('title-play', hasLocal ? 'Keep playing' : 'Start playing',
+        hasLocal ? 'Pick up where you left off. Your progress is saved on this device.' : 'Jump right in. Your progress is saved on this device only.', function () { enterApp(false); }, true));
       if (syncOn) {
-        opts.push(menuBtn('title-continue', 'Continue with a code', 'Load your saved progress from the cloud.', function () { openCodeDialog('enter', enterApp); }));
-        opts.push(menuBtn('title-getcode', 'Get a code', 'Save your progress to the cloud so you can continue on any device.', function () { openCodeDialog('make', enterApp); }));
+        opts.push(menuBtn('title-continue', 'Continue with a code', 'Already saved your progress? Enter your code to bring it back.', function () { openCodeDialog('enter', function () { enterApp(true); }); }));
+        opts.push(menuBtn('title-getcode', 'Get a code', 'Save your progress to the cloud. You get a private code to continue on any device.', function () { openCodeDialog('make', function () { enterApp(true); }); }));
       }
     }
-    return h('div', { class: 'title-screen' },
-      h('div', { class: 'hero-glyphs', 'aria-hidden': 'true' }, h('span', { class: 'g1' }, 'ગ'), h('span', { class: 'g2' }, 'ક'), h('span', { class: 'g3' }, 'મ')),
+    var hero = h('div', { class: 'title-hero-wrap' },
+      ['\u0A95', '\u0AAE', '\u0A97', '\u0A9A'].map(function (g, i) { return h('span', { class: 'title-deco d' + (i + 1), lang: 'gu', 'aria-hidden': 'true' }, g); }),
+      h('div', { class: 'title-hero' },
+        h('p', { class: 'label' }, 'Gujarati, on paper'),
+        h('h1', null, h('span', { class: 'gu', lang: 'gu' }, '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0'), ' Play'),
+        h('p', null, 'Read what you already say.')));
+    var screen = h('div', { class: 'title-screen' },
+      GL.ui.confettiField(46),
       h('div', { class: 'title-wrap' },
-        h('div', { class: 'title-hero' },
-          h('p', { class: 'label' }, 'Gujarati, on paper'),
-          h('h1', null, h('span', { class: 'gu', lang: 'gu' }, 'ગુજરાતી'), ' Play'),
-          h('p', null, 'Read what you already say.')),
+        hero,
         h('div', { class: 'menu' }, opts),
         h('p', { class: 'title-foot' }, syncOn ? 'Codes are private and need no account or email.' : 'Your progress is saved on this device.')));
+    celebrateSoon(function () { var r = hero.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+    return screen;
   }
 
   /* ---------- Home ---------- */
@@ -539,6 +551,9 @@ GL.app = (function () {
     function radio(val, label, desc) {
       return h('label', { class: 'choice' }, h('input', { type: 'radio', name: 'hints', value: val, checked: st.settings.hints === val, onchange: function () { st.settings.hints = val; store.save(); GL.ui.toast('Saved'); } }), h('span', null, h('b', null, label), ' — ', desc));
     }
+    function fxRadio(val, label, desc) {
+      return h('label', { class: 'choice' }, h('input', { type: 'radio', name: 'effects', value: val, checked: (st.settings.effects || 'system') === val, onchange: function () { st.settings.effects = val; store.save(); GL.ui.applyFx(); GL.ui.toast('Saved'); if (val === 'on') GL.ui.burst(innerWidth / 2, innerHeight / 2, 24); } }), h('span', null, h('b', null, label), ' \u2014 ', desc));
+    }
     var voiceNote = h('p', { class: 'muted', id: 'voice-note' });
     function updVoice() { voiceNote.textContent = GL.speech.available() ? 'A Gujarati voice was found on this device.' : 'No Gujarati voice found on this device, so audio buttons stay hidden. Voices vary by device and browser.'; }
     updVoice(); GL.speech.onChange(updVoice);
@@ -556,6 +571,12 @@ GL.app = (function () {
             radio('show', 'Always show', 'hints appear next to letters and words'),
             radio('tap', 'Tap to reveal', 'a small button shows each hint when you want it'),
             radio('hide', 'Hide', 'read with no hints'))),
+        h('section', { class: 'card' }, h('h2', null, 'Effects'),
+          h('p', null, 'Confetti, glowing titles and floating letters.'),
+          h('fieldset', null, h('legend', { class: 'sr' }, 'Effects'),
+            fxRadio('system', 'Follow my device', 'calmer if your device is set to reduce motion'),
+            fxRadio('on', 'Always on', 'celebrations even if your device reduces motion'),
+            fxRadio('off', 'Off', 'a quiet, still screen'))),
         h('section', { class: 'card' }, h('h2', null, 'Audio'),
           h('label', { class: 'choice' }, h('input', { type: 'checkbox', checked: st.settings.speech, onchange: function (e) { st.settings.speech = e.target.checked; store.save(); } }), h('span', null, 'Offer “Hear it” buttons when a Gujarati voice is available')),
           voiceNote),
@@ -621,6 +642,7 @@ GL.app = (function () {
       node = h('div', { class: 'card' }, h('h1', null, 'Something went wrong'), h('p', null, 'Try going home. Your progress is safe.'), link('#/', 'btn primary', 'Home'));
     }
     main.appendChild(node);
+    if (celebrateNext && route === '') { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + b.height / 2]; }); }
     document.body.classList.toggle('title-mode', route === 'start');
     document.title = (titles[route] || 'Play') + ' · ગુજરાતી Play';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
@@ -662,6 +684,8 @@ GL.app = (function () {
 
   function init() {
     main = document.getElementById('app');
+    GL.ui.applyFx();
+    if (window.matchMedia) { var mq = window.matchMedia('(prefers-reduced-motion: reduce)'); if (mq.addEventListener) mq.addEventListener('change', GL.ui.applyFx); }
     setupFullscreen();
     if (GL.sync) { GL.sync.onStatus(function () { if (syncPaint) syncPaint(); }); GL.sync.start(); }
     window.addEventListener('hashchange', render);

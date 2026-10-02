@@ -144,7 +144,7 @@ GL.store = (function () {
   var persistent = true;
 
   function fresh() {
-    return { v: 1, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true } };
+    return { v: 1, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true, effects: 'system' } };
   }
   function load() {
     var raw = null;

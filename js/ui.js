@@ -127,11 +127,54 @@ GL.ui = (function () {
     return box;
   }
 
+  var PALETTE = ['#9149dc', '#f28a4b', '#bc69a6', '#ffd166', '#2c2140'];
+  /* Effects setting: 'system' follows the device's reduce-motion preference, 'on' always plays them, 'off' never does. */
+  function calm() {
+    var mode = (GL.store && GL.store.state().settings.effects) || 'system';
+    if (mode === 'on') return false;
+    if (mode === 'off') return true;
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function applyFx() { document.body.classList.toggle('fx-calm', calm()); }
+
+  /* Ambient confetti that keeps falling behind the page (from the FinalScoring reveal). Opaque cards sit on top,
+     so the pieces peek out around them and never cover text. Returns a node to add to the screen. */
+  function confettiField(count) {
+    var box = h('div', { class: 'cf-field', 'aria-hidden': 'true' });
+    if (calm()) return box;
+    for (var i = 0; i < (count || 44); i++) {
+      var p = h('span', { class: 'cf' });
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.background = PALETTE[i % PALETTE.length];
+      p.style.animationDuration = (4.2 + Math.random() * 3) + 's';
+      p.style.animationDelay = (Math.random() * 6) + 's';
+      box.appendChild(p);
+    }
+    return box;
+  }
+  /* A one-shot burst from a point, plus a soft gold flash. */
+  function burst(x, y, n) {
+    if (calm()) return;
+    var layer = h('div', { class: 'cf-field cf-burst-layer', 'aria-hidden': 'true' });
+    layer.appendChild(h('div', { class: 'cf-flash' }));
+    for (var i = 0; i < (n || 28); i++) {
+      var a = Math.random() * Math.PI * 2, dist = 70 + Math.random() * 190;
+      var p = h('span', { class: 'cf burst' });
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      p.style.background = PALETTE[i % PALETTE.length];
+      p.style.setProperty('--end', 'translate(' + Math.cos(a) * dist + 'px,' + (Math.sin(a) * dist - 40) + 'px)');
+      p.style.animationDelay = (Math.random() * 0.25) + 's';
+      layer.appendChild(p);
+    }
+    document.body.appendChild(layer);
+    setTimeout(function () { if (layer.parentNode) layer.parentNode.removeChild(layer); }, 3200);
+  }
+
   var cheers = ['Right.', 'Yes.', 'Got it.', 'Exactly.', 'Correct.'];
   var kind = ['Not that one.', 'Close. Try again.', 'Have another look.', 'Try once more.'];
   function cheer() { return cheers[Math.floor(Math.random() * cheers.length)]; }
   function kindly() { return kind[Math.floor(Math.random() * kind.length)]; }
 
   return { h: h, gu: gu, highlighted: highlighted, toast: toast, updateHud: updateHud, onCleanup: onCleanup, runCleanups: runCleanups,
-    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
+    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, confettiField: confettiField, burst: burst, calm: calm, applyFx: applyFx, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
 })();
