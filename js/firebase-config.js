@@ -6,4 +6,4 @@
  * These two values are meant to be public (they ship in every Firebase web app). Protection comes from the
  * Firestore rules in firebase/firestore.rules and from restricting the API key to your site's address.
  */
-window.GL_FIREBASE = null;
+window.GL_FIREBASE = { apiKey: 'AIzaSyDHDvuN_rasELhIk9xQ885nTWmovvyoaGo', projectId: 'gujarati-play' };
