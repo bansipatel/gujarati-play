@@ -31,67 +31,71 @@ GL.app = (function () {
       h('div', { class: 'row' }, link('#/play/review', 'btn small', 'Review these')));
   }
 
-  /* ---------- Title screen (start menu) ---------- */
+  /* ---------- Home: the landing page (start menu) ---------- */
   var celebrateNext = false;
-  /* Fire a confetti burst once the screen has been placed. where() returns [x, y] in the viewport. */
+  /* Soft celebration once the screen has been placed. where() returns [x, y] in the viewport. */
   function celebrateSoon(where) {
-    setTimeout(function () { var el = document.querySelector('.title-screen, .home'); if (!el) return; var p = where(); GL.ui.burst(p[0], p[1], 30); }, 350);
+    setTimeout(function () { if (!document.querySelector('.landing, .summary')) return; var p = where(); GL.ui.burst(p[0], p[1]); }, 450);
   }
-  function enterApp(celebrate) {
-    try { window.sessionStorage.setItem('gp.entered', '1'); } catch (e) { /* ignore */ }
-    celebrateNext = !!celebrate;
-    if (location.hash === '#/' || location.hash === '') render(); else location.hash = '#/';
+  function menuBtn(id, title, sub, icon, onclick, primary, i) {
+    var b = h('button', { type: 'button', class: 'menu-btn' + (primary ? ' primary' : ''), id: id, onclick: onclick },
+      h('span', { class: 'mb-ic' }, GL.ui.icon(icon)),
+      h('span', { class: 'mb-text' }, h('span', { class: 'mb-title' }, title), h('span', { class: 'mb-sub' }, sub)),
+      h('span', { class: 'mb-arrow', 'aria-hidden': 'true' }, GL.ui.icon('arrow', 'sm')));
+    b.style.setProperty('--i', String(i || 0));
+    return b;
   }
-  function hasEntered() { try { return !!window.sessionStorage.getItem('gp.entered'); } catch (e) { return false; } }
-  function menuBtn(id, title, sub, onclick, primary) {
-    return h('button', { type: 'button', class: 'menu-btn' + (primary ? ' primary' : ''), id: id, onclick: onclick },
-      h('span', { class: 'mb-title' }, title), h('span', { class: 'mb-sub' }, sub));
-  }
-  function titleScreen() {
-    var s = stats(), st = store.state();
+  function landing() {
+    var s = stats(), st = store.state(), next = store.nextLesson();
     var hasLocal = s.lessons > 0 || st.points > 0;
     var syncOn = !!(GL.sync && GL.sync.available()), linked = !!(GL.sync && GL.sync.linked());
+    var upNext = next ? 'Up next: Lesson ' + next.id + ', ' + next.title + '.' : 'Every lesson finished. Time to sharpen your skills.';
+    var playHref = hasLocal ? '#/today' : '#/lesson/1';
+    function go(href) { return function () { location.hash = href; }; }
     var opts = [];
     if (linked) {
-      opts.push(menuBtn('title-continue', 'Continue', 'Pick up where you left off. Your progress is saved to the cloud.', function () { enterApp(false); }, true));
-      opts.push(menuBtn('title-mycode', 'My code', 'See or copy your private code.', function () { openCodeDialog('show', null); }));
+      opts.push(menuBtn('title-continue', 'Continue', upNext + ' Saved to the cloud.', 'play', go(playHref), true, 0));
+      opts.push(menuBtn('title-mycode', 'My code', 'See or copy your private code.', 'key', function () { openCodeDialog('show', null); }, false, 1));
     } else {
       opts.push(menuBtn('title-play', hasLocal ? 'Keep playing' : 'Start playing',
-        hasLocal ? 'Pick up where you left off. Your progress is saved on this device.' : 'Jump right in. Your progress is saved on this device only.', function () { enterApp(false); }, true));
+        hasLocal ? upNext + ' Saved on this device.' : 'Jump right in. Your progress is saved on this device only.', 'play', go(playHref), true, 0));
       if (syncOn) {
-        opts.push(menuBtn('title-continue', 'Continue with a code', 'Already saved your progress? Enter your code to bring it back.', function () { openCodeDialog('enter', function () { enterApp(true); }); }));
-        opts.push(menuBtn('title-getcode', 'Get a code', 'Save your progress to the cloud. You get a private code to continue on any device.', function () { openCodeDialog('make', function () { enterApp(true); }); }));
+        opts.push(menuBtn('title-continue', 'Continue with a code', 'Already saved your progress? Enter your code to bring it back.', 'key',
+          function () { openCodeDialog('enter', function () { celebrateNext = true; location.hash = '#/summary'; }); }, false, 1));
+        opts.push(menuBtn('title-getcode', 'Get a code', 'Save your progress to the cloud. You get a private code to continue on any device.', 'cloud',
+          function () { openCodeDialog('make', function () { celebrateNext = true; render(); }); }, false, 2));
       }
     }
-    var hero = h('div', { class: 'title-hero-wrap' },
-      ['\u0A95', '\u0AAE', '\u0A97', '\u0A9A'].map(function (g, i) { return h('span', { class: 'title-deco d' + (i + 1), lang: 'gu', 'aria-hidden': 'true' }, g); }),
-      h('div', { class: 'title-hero' },
-        h('p', { class: 'label' }, 'Gujarati, on paper'),
-        h('h1', null, h('span', { class: 'gu', lang: 'gu' }, '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0'), ' Play'),
-        h('p', null, 'Read what you already say.')));
-    var screen = h('div', { class: 'title-screen' },
-      GL.ui.confettiField(46),
-      h('div', { class: 'title-wrap' },
-        hero,
-        h('div', { class: 'menu' }, opts),
-        h('p', { class: 'title-foot' }, syncOn ? 'Codes are private and need no account or email.' : 'Your progress is saved on this device.')));
-    celebrateSoon(function () { var r = hero.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
-    return screen;
+    var orbit = h('div', { class: 'orbit', 'aria-hidden': 'true' },
+      ['\u0A95', '\u0A96', '\u0A97', '\u0A98', '\u0A9A', '\u0A9B', '\u0A9C', '\u0A9D', '\u0A9F', '\u0AA1', '\u0AA4', '\u0AA6'].map(function (g, i) {
+        var sp = h('span', { lang: 'gu' }, h('b', null, g)); sp.style.setProperty('--a', (i * 30) + 'deg'); return sp;
+      }));
+    return h('section', { class: 'landing' },
+      h('div', { class: 'aurora', 'aria-hidden': 'true' }, h('i', { class: 'a1' }), h('i', { class: 'a2' }), h('i', { class: 'a3' }), h('i', { class: 'a4' })),
+      orbit, GL.ui.sparkles(9),
+      h('div', { class: 'landing-grid' },
+        h('div', { class: 'landing-copy' },
+          h('p', { class: 'label' }, 'Gujarati, on paper'),
+          h('h1', { class: 'brandmark' }, h('span', { class: 'gu gtext', lang: 'gu' }, '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4\u0AC0'), h('span', { class: 'ptext' }, 'Play')),
+          h('p', { class: 'landing-tag' }, 'Read what you already say.'),
+          h('p', { class: 'landing-sub' }, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.')),
+        h('div', { class: 'menu' }, opts,
+          h('p', { class: 'title-foot' }, syncOn ? 'Codes are private and need no account or email.' : 'Your progress is saved on this device.'))));
   }
 
-  /* ---------- Home ---------- */
-  function home() {
+  /* ---------- Summary: your progress at a glance (the old Home) ---------- */
+  function summary() {
     var s = stats(), lv = store.level(), st = store.state();
     var started = s.lessons > 0, next = store.nextLesson();
     var last = st.days.length ? st.days[st.days.length - 1] : null;
     var welcome = (started && last && last !== today_()) ? h('p', { class: 'muted' }, 'Welcome back. Everything you learned is still here.') : null;
 
-    // Home is the dashboard. Saving choices live on the title screen; here we only show where progress is saved.
+    // Summary shows progress. Saving choices live on Home; here we only show where progress is saved.
     var syncOn = !!(GL.sync && GL.sync.available()), syncLinked = !!(GL.sync && GL.sync.linked());
     var startBtn = h('a', { href: started ? '#/today' : '#/lesson/1', class: 'btn primary huge', id: 'home-start' }, 'Start playing');
     var heroNote = syncOn ? h('p', { class: 'hero-note', id: 'hero-note' }, syncLinked
       ? ['Synced to the cloud with your private code. ', link('#/settings', 'note-link', 'Manage it in Settings')]
-      : ['Saved on this device only. ', link('#/start', 'note-link', 'Get a code to save it to the cloud')]) : null;
+      : ['Saved on this device only. ', link('#/', 'note-link', 'Get a code to save it to the cloud')]) : null;
 
     var nextPanel;
     if (next) {
@@ -125,15 +129,17 @@ GL.app = (function () {
       return h('button', { type: 'button', class: cls, lang: 'gu', 'aria-label': GL.ui.glyphOf(it) + ', ' + it.roman + ', ' + label, onclick: function () { detail(it); } }, GL.ui.glyphOf(it));
     }));
 
-    return h('div', { class: 'home' },
+    return h('div', { class: 'home summary' },
       h('div', { class: 'home-top' },
-        h('section', { class: 'hero-panel' },
-          h('div', { class: 'hero-glyphs', 'aria-hidden': 'true' }, h('span', { class: 'g1' }, 'ગ'), h('span', { class: 'g2' }, 'ક'), h('span', { class: 'g3' }, 'મ')),
-          h('p', { class: 'label' }, 'Gujarati, on paper'),
-          h('h1', null, 'Read what you already say.'),
-          h('p', null, 'You speak Gujarati. This teaches you to see it written, a few minutes at a time, starting from words you already know.'),
+        h('section', { class: 'hero-panel summary' },
+          h('div', { class: 'hero-glyphs', 'aria-hidden': 'true' }, h('span', { class: 'g1' }, '\u0A97'), h('span', { class: 'g2' }, '\u0A95'), h('span', { class: 'g3' }, '\u0AAE')),
+          h('p', { class: 'label' }, 'Summary'),
+          h('h1', null, 'Level ' + lv.n + ' \u00b7 ' + lv.title),
+          h('p', null, st.points + ' points \u00b7 ' + s.days + (s.days === 1 ? ' day' : ' days') + ' played \u00b7 ' + s.learned + ' of ' + s.total + ' letters learned'),
+          h('div', { class: 'lv-bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': lv.size, 'aria-valuenow': lv.into, 'aria-label': 'Progress to the next level' }, h('div', { style: 'width:' + Math.round(lv.into / lv.size * 100) + '%' })),
+          h('p', { class: 'hero-note' }, (lv.size - lv.into) + ' points to the next level.'),
           h('div', { class: 'row' }, startBtn, link('#/alphabet', 'btn ghost', 'Browse the alphabet')),
-        heroNote),
+          heroNote),
         nextPanel),
       h('ul', { class: 'statline' },
         h('li', null, h('b', null, String(st.points)), h('span', null, 'points')),
@@ -572,10 +578,10 @@ GL.app = (function () {
             radio('tap', 'Tap to reveal', 'a small button shows each hint when you want it'),
             radio('hide', 'Hide', 'read with no hints'))),
         h('section', { class: 'card' }, h('h2', null, 'Effects'),
-          h('p', null, 'Confetti, glowing titles and floating letters.'),
+          h('p', null, 'Drifting color, a turning ring of letters, sparkles and soft ripples.'),
           h('fieldset', null, h('legend', { class: 'sr' }, 'Effects'),
             fxRadio('system', 'Follow my device', 'calmer if your device is set to reduce motion'),
-            fxRadio('on', 'Always on', 'celebrations even if your device reduces motion'),
+            fxRadio('on', 'Always on', 'show them even if your device reduces motion'),
             fxRadio('off', 'Off', 'a quiet, still screen'))),
         h('section', { class: 'card' }, h('h2', null, 'Audio'),
           h('label', { class: 'choice' }, h('input', { type: 'checkbox', checked: st.settings.speech, onchange: function (e) { st.settings.speech = e.target.checked; store.save(); } }), h('span', null, 'Offer “Hear it” buttons when a Gujarati voice is available')),
@@ -616,7 +622,7 @@ GL.app = (function () {
   function notFound() { return h('div', { class: 'card' }, h('h1', null, 'That page wandered off'), link('#/', 'btn primary', 'Back home')); }
 
   /* ---------- Router ---------- */
-  var titles = { start: 'Welcome', '': 'Home', today: 'Today', lessons: 'Lessons', lesson: 'Lesson', practice: 'Practice', play: 'Game', flash: 'Flashcards', write: 'Writing', alphabet: 'Alphabet', settings: 'Settings' };
+  var titles = { '': 'Home', summary: 'Summary', today: 'Today', lessons: 'Lessons', lesson: 'Lesson', practice: 'Practice', play: 'Game', flash: 'Flashcards', write: 'Writing', alphabet: 'Alphabet', settings: 'Settings' };
   function render() {
     GL.ui.runCleanups();
     var parts = location.hash.replace(/^#\/?/, '').split('/');
@@ -624,9 +630,8 @@ GL.app = (function () {
     main.innerHTML = '';
     var node;
     try {
-      if (route === 'start') node = titleScreen();
-      else if (route === '' && !hasEntered() && GL.sync && GL.sync.available()) { route = 'start'; node = titleScreen(); }
-      else if (route === '') node = home();
+      if (route === '' || route === 'start') { route = ''; node = landing(); }
+      else if (route === 'summary') node = summary();
       else if (route === 'today') node = today();
       else if (route === 'lessons') node = lessons();
       else if (route === 'lesson') node = lesson(parseInt(arg, 10));
@@ -642,15 +647,14 @@ GL.app = (function () {
       node = h('div', { class: 'card' }, h('h1', null, 'Something went wrong'), h('p', null, 'Try going home. Your progress is safe.'), link('#/', 'btn primary', 'Home'));
     }
     main.appendChild(node);
-    if (celebrateNext && route === '') { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + b.height / 2]; }); }
-    document.body.classList.toggle('title-mode', route === 'start');
+    if (celebrateNext && (route === '' || route === 'summary')) { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel, .menu'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + Math.min(b.height / 2, 220)]; }); }
     document.title = (titles[route] || 'Play') + ' · ગુજરાતી Play';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
       var r = a.getAttribute('data-route'), on = r === route || (route === 'today' && r === '') || ((route === 'play' || route === 'flash') && r === 'practice') || (route === 'lesson' && r === 'lessons');
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var foot = document.getElementById('foot');
-    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a> · <a href="#/start">Title screen</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
+    if (foot) foot.innerHTML = (GL.sync && GL.sync.linked()) ? 'Progress is saved on this device and synced with your code. <a href="#/settings">Sync settings</a>' : 'Progress is saved only in this browser. <a href="#/settings">Back it up' + ((GL.sync && GL.sync.configured()) ? ' or turn on sync' : '') + '</a> before clearing site data.';
     GL.ui.updateHud();
     window.scrollTo(0, 0);
     if (route !== 'write') main.focus({ preventScroll: true });

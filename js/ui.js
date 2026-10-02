@@ -112,23 +112,9 @@ GL.ui = (function () {
       anySilent ? h('p', { class: 'legend' }, '(a) = the built-in “a” is written, but not said out loud.') : null);
   }
 
-  /* Falling confetti (pure CSS) for celebrations; skipped for reduced motion via the stylesheet. */
-  function confetti(count) {
-    var box = h('div', { class: 'confetti-box', 'aria-hidden': 'true' });
-    var colors = ['#9149dc', '#f28a4b', '#bc69a6', '#ffd166'];
-    for (var i = 0; i < (count || 24); i++) {
-      var c = h('span', { class: 'confetti' });
-      c.style.left = (Math.random() * 100) + '%';
-      c.style.background = colors[i % colors.length];
-      c.style.animationDuration = (4 + Math.random() * 3) + 's';
-      c.style.animationDelay = (Math.random() * 2.5) + 's';
-      box.appendChild(c);
-    }
-    return box;
-  }
+  function confetti(count) { return sparkles(Math.min(count || 14, 14), ['#ffffff', '#ffd166', '#ffe9a8']); }
 
-  var PALETTE = ['#9149dc', '#f28a4b', '#bc69a6', '#ffd166', '#2c2140'];
-  /* Effects setting: 'system' follows the device's reduce-motion preference, 'on' always plays them, 'off' never does. */
+  var PALETTE = ['#ffd166', '#9149dc', '#bc69a6', '#f28a4b'];
   function calm() {
     var mode = (GL.store && GL.store.state().settings.effects) || 'system';
     if (mode === 'on') return false;
@@ -137,37 +123,36 @@ GL.ui = (function () {
   }
   function applyFx() { document.body.classList.toggle('fx-calm', calm()); }
 
-  /* Ambient confetti that keeps falling behind the page (from the FinalScoring reveal). Opaque cards sit on top,
-     so the pieces peek out around them and never cover text. Returns a node to add to the screen. */
-  function confettiField(count) {
-    var box = h('div', { class: 'cf-field', 'aria-hidden': 'true' });
-    if (calm()) return box;
-    for (var i = 0; i < (count || 44); i++) {
-      var p = h('span', { class: 'cf' });
-      p.style.left = (Math.random() * 100) + 'vw';
-      p.style.background = PALETTE[i % PALETTE.length];
-      p.style.animationDuration = (4.2 + Math.random() * 3) + 's';
-      p.style.animationDelay = (Math.random() * 6) + 's';
-      box.appendChild(p);
+  /* A scatter of small four-point stars that twinkle. Drop it into any positioned container. */
+  function sparkles(count, colors) {
+    var box = h('div', { class: 'sparkles', 'aria-hidden': 'true' });
+    for (var i = 0; i < (count || 10); i++) {
+      var s = h('span', { class: 'spark' });
+      s.style.left = (4 + Math.random() * 92) + '%'; s.style.top = (6 + Math.random() * 86) + '%';
+      var size = 8 + Math.random() * 12; s.style.width = size + 'px'; s.style.height = size + 'px';
+      s.style.background = (colors || PALETTE)[i % (colors || PALETTE).length];
+      s.style.setProperty('--d', (Math.random() * 3.4).toFixed(2) + 's'); s.style.animationDuration = (2.6 + Math.random() * 2) + 's';
+      box.appendChild(s);
     }
     return box;
   }
-  /* A one-shot burst from a point, plus a soft gold flash. */
-  function burst(x, y, n) {
+  /* A soft celebration from a point: a warm glow, three expanding ripples and a few drifting stars. */
+  function burst(x, y) {
     if (calm()) return;
-    var layer = h('div', { class: 'cf-field cf-burst-layer', 'aria-hidden': 'true' });
-    layer.appendChild(h('div', { class: 'cf-flash' }));
-    for (var i = 0; i < (n || 28); i++) {
-      var a = Math.random() * Math.PI * 2, dist = 70 + Math.random() * 190;
-      var p = h('span', { class: 'cf burst' });
-      p.style.left = x + 'px'; p.style.top = y + 'px';
-      p.style.background = PALETTE[i % PALETTE.length];
-      p.style.setProperty('--end', 'translate(' + Math.cos(a) * dist + 'px,' + (Math.sin(a) * dist - 40) + 'px)');
-      p.style.animationDelay = (Math.random() * 0.25) + 's';
-      layer.appendChild(p);
+    var layer = h('div', { class: 'fx-layer', 'aria-hidden': 'true' });
+    var glow = h('div', { class: 'fx-glow' }); glow.style.left = x + 'px'; glow.style.top = y + 'px'; layer.appendChild(glow);
+    ['#ffd166', '#9149dc', '#bc69a6'].forEach(function (c, i) {
+      var r = h('span', { class: 'rip' }); r.style.left = x + 'px'; r.style.top = y + 'px'; r.style.setProperty('--c', c); r.style.setProperty('--d', (i * 0.18) + 's'); layer.appendChild(r);
+    });
+    for (var i = 0; i < 14; i++) {
+      var a = (Math.PI * 2 * i) / 14 + Math.random() * 0.4, dist = 70 + Math.random() * 130, size = 10 + Math.random() * 10;
+      var s = h('span', { class: 'spark fly' });
+      s.style.left = x + 'px'; s.style.top = y + 'px'; s.style.width = size + 'px'; s.style.height = size + 'px'; s.style.background = PALETTE[i % PALETTE.length];
+      s.style.setProperty('--end', 'translate(' + Math.cos(a) * dist + 'px,' + (Math.sin(a) * dist - 20) + 'px)'); s.style.setProperty('--d', (Math.random() * 0.25) + 's');
+      layer.appendChild(s);
     }
     document.body.appendChild(layer);
-    setTimeout(function () { if (layer.parentNode) layer.parentNode.removeChild(layer); }, 3200);
+    setTimeout(function () { if (layer.parentNode) layer.parentNode.removeChild(layer); }, 2600);
   }
 
   var cheers = ['Right.', 'Yes.', 'Got it.', 'Exactly.', 'Correct.'];
@@ -176,5 +161,5 @@ GL.ui = (function () {
   function kindly() { return kind[Math.floor(Math.random() * kind.length)]; }
 
   return { h: h, gu: gu, highlighted: highlighted, toast: toast, updateHud: updateHud, onCleanup: onCleanup, runCleanups: runCleanups,
-    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, confettiField: confettiField, burst: burst, calm: calm, applyFx: applyFx, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
+    award: award, played: played, hint: hint, speakBtn: speakBtn, glyphOf: glyphOf, icon: icon, sparkles: sparkles, burst: burst, calm: calm, applyFx: applyFx, breakdownNode: breakdownNode, confetti: confetti, cheer: cheer, kindly: kindly };
 })();
