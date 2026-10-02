@@ -97,7 +97,7 @@ nav .nav-btn[aria-pressed="true"] { color: var(--accent); background: var(--tint
 }
 @media (hover: hover) { nav a:hover, nav .nav-btn:hover { background: var(--tint); } }
 main:focus, main:focus-visible { outline: none; }
-main { max-width: 1180px; margin: 0 auto; padding: .5rem calc(1rem + env(safe-area-inset-right)) 1.5rem calc(1rem + env(safe-area-inset-left)); outline: none; }
+main { position: relative; isolation: isolate; max-width: 1180px; margin: 0 auto; padding: .5rem calc(1rem + env(safe-area-inset-right)) 1.5rem calc(1rem + env(safe-area-inset-left)); outline: none; }
 @media (min-width: 768px) { main { padding-left: 2rem; padding-right: calc(2rem + env(safe-area-inset-right)); } }
 footer { max-width: 1180px; margin: 0 auto; padding: 0 1rem 1.2rem; color: var(--muted); font-size: .82rem; }
 @media (min-width: 768px) { footer { padding-left: 2rem; } }
@@ -436,3 +436,13 @@ body.fx-calm *, body.fx-calm *::before, body.fx-calm *::after { transition: none
 .name-field .label { margin: 0; }
 .name-input { width: 100%; max-width: none; text-align: left; font-size: 1.1rem; }
 .field-note { font-size: .8rem; color: var(--muted); }
+
+/* ---------- Shared look: soft color glow, faint letters, glass cards (matches Home) ---------- */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle at 8% 0%, rgba(145, 73, 220, .20), transparent 42%), radial-gradient(circle at 96% 6%, rgba(242, 138, 75, .20), transparent 40%), radial-gradient(circle at 30% 100%, rgba(188, 105, 166, .22), transparent 46%), radial-gradient(circle at 92% 96%, rgba(255, 209, 102, .24), transparent 40%); }
+.page-letters { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.page-letters span { position: absolute; font-family: var(--gu); font-weight: 700; line-height: 1; color: rgba(109, 40, 184, .13); transform: rotate(var(--r, 0deg)); animation: bob 8s ease-in-out infinite; animation-delay: var(--d); }
+body.fx-calm .page-letters span { animation: none; }
+.card, .qcard, .lesson-row, .next-panel { background: rgba(255, 255, 255, .74); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, .9); box-shadow: 0 12px 30px rgba(85, 39, 92, .10), inset 0 1px 0 rgba(255, 255, 255, .9); }
+.lead { color: #4c1d95; font-weight: 600; }
+.muted { color: #5b3f86; }

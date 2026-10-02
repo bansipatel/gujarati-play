@@ -97,15 +97,20 @@ GL.app = (function () {
       var rg = document.createRange(); rg.selectNodeContents(el);
       Array.prototype.forEach.call(rg.getClientRects(), add);
     });
+    placeLetters(box, blocks, layer, box.width < 700 ? 8 : 22, 62);
+  }
+
+  /* Faint letters in any gap that is clear of the given blocks (viewport rects). Seeded, so the layout is stable. */
+  function placeLetters(box, blocks, layer, max, gap) {
     var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
     var pool = ['ક', 'ખ', 'ગ', 'ઘ', 'ચ', 'છ', 'જ', 'ઝ', 'ટ', 'ઠ', 'ડ', 'ઢ', 'ણ', 'ત', 'થ', 'દ', 'ધ', 'ન', 'પ', 'ફ', 'બ', 'ભ', 'મ', 'ય', 'ર', 'લ', 'વ', 'શ', 'સ', 'હ'];
-    var placed = [], tries = 0, max = box.width < 700 ? 8 : 22;
+    var placed = [], tries = 0;
     layer.textContent = '';
-    while (placed.length < max && tries++ < 600) {
+    while (placed.length < max && tries++ < 900) {
       var size = 26 + rnd() * 22, x = rnd() * (box.width - size - 20) + 10, y = rnd() * (box.height - size - 20) + 10;
       var L = box.left + x, T = box.top + y, R = L + size * 1.1, B = T + size * 1.3, ok = true, k;
       for (k = 0; k < blocks.length && ok; k++) { var q = blocks[k]; if (!(R < q.l || L > q.r || B < q.t || T > q.b)) ok = false; }
-      for (k = 0; k < placed.length && ok; k++) { var dx = placed[k].x - x, dy = placed[k].y - y; if (dx * dx + dy * dy < 62 * 62) ok = false; }
+      for (k = 0; k < placed.length && ok; k++) { var dx = placed[k].x - x, dy = placed[k].y - y; if (dx * dx + dy * dy < gap * gap) ok = false; }
       if (!ok) continue;
       placed.push({ x: x, y: y });
       var sp = h('span', { lang: 'gu' }, pool[placed.length % pool.length]);
@@ -114,6 +119,29 @@ GL.app = (function () {
       layer.appendChild(sp);
     }
   }
+
+  /* Same idea on the inner pages: letters only where there is no text, control or picture. */
+  var LETTER_ROUTES = { summary: 1, today: 1, lessons: 1, practice: 1, settings: 1 };
+  function scatterPage() {
+    var layer = main.querySelector('.page-letters');
+    if (!layer) return;
+    var box = main.getBoundingClientRect(), blocks = [], pad = 18;
+    function add(r) { if (r.width && r.height) blocks.push({ l: r.left - pad, t: r.top - pad, r: r.right + pad, b: r.bottom + pad }); }
+    Array.prototype.forEach.call(main.querySelectorAll('*'), function (el) {
+      if (layer.contains(el)) return;
+      var tag = el.tagName.toLowerCase();
+      if (tag === 'svg' || tag === 'canvas' || tag === 'input' || tag === 'select' || tag === 'button' || el.classList.contains('label-pill') || el.classList.contains('btn')) { add(el.getBoundingClientRect()); return; }
+      if (el.children.length === 0 && el.textContent.trim()) { var rg = document.createRange(); rg.selectNodeContents(el); Array.prototype.forEach.call(rg.getClientRects(), add); }
+    });
+    placeLetters(box, blocks, layer, Math.min(34, Math.round(box.width * box.height / 70000)), 70);
+  }
+  function decoratePage(route) {
+    if (!LETTER_ROUTES[route]) return;
+    var layer = h('div', { class: 'page-letters', 'aria-hidden': 'true' });
+    main.insertBefore(layer, main.firstChild);
+    setTimeout(scatterPage, 120);
+  }
+  window.addEventListener('resize', function () { clearTimeout(scatterPage.t); scatterPage.t = setTimeout(scatterPage, 200); });
 
   /* ---------- Summary: your progress at a glance (the old Home) ---------- */
   function summary() {
@@ -762,6 +790,7 @@ GL.app = (function () {
       node = h('div', { class: 'card' }, h('h1', null, 'Something went wrong'), h('p', null, 'Try going home. Your progress is safe.'), link('#/', 'btn primary', 'Home'));
     }
     main.appendChild(node);
+    decoratePage(route);
     if (celebrateNext && (route === '' || route === 'summary')) { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel, .menu'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + Math.min(b.height / 2, 220)]; }); }
     document.title = (titles[route] || 'Play') + ' · Read and Write Gujarati';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
