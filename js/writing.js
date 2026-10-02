@@ -10,8 +10,9 @@ GL.writing = (function () {
   function view(root, startId) {
     var items = GL.items;
     var cur = Math.max(0, items.map(function (i) { return i.id; }).indexOf(startId));
-    var strokes = [], drawing = null, activeId = null, penUntil = 0, guideMode = 'outline', guideToken = 0, penSize = 'medium';
-    var PEN = { fine: 0.011, medium: 0.016, bold: 0.024 };   // line width as a share of the pad width
+    var strokes = [], drawing = null, activeId = null, penUntil = 0, guideMode = 'outline', guideToken = 0, penSize = 'medium', assist = 'light', lastRaw = null;
+    var PEN = { fine: 0.017, medium: 0.026, bold: 0.038 };   // line width as a share of the pad width
+    var ASSIST = { off: 1, light: 0.5, strong: 0.28 };       // how far each new point moves toward the pen (smaller = steadier line)
 
     var refBox = h('div', { class: 'ref-card' });
     var select = h('select', { id: 'letter-select', 'aria-label': 'Choose a letter to practice', onchange: function () { go(+select.value); } });
@@ -45,6 +46,11 @@ GL.writing = (function () {
       penSize = m[0]; penBtns.forEach(function (b, i) { b.setAttribute('aria-pressed', String(PEN_MODES[i][0] === penSize)); }); redraw();
     } }, m[1]); });
     var penGroup = h('div', { class: 'seg-group', role: 'group', 'aria-label': 'Pen thickness' }, h('span', { class: 'seg-label' }, 'Pen'), penBtns);
+    var ASSIST_MODES = [['off', 'Off'], ['light', 'Light'], ['strong', 'Strong']];
+    var assistBtns = ASSIST_MODES.map(function (m) { return h('button', { type: 'button', class: 'seg', 'aria-pressed': String(m[0] === assist), onclick: function () {
+      assist = m[0]; assistBtns.forEach(function (b, i) { b.setAttribute('aria-pressed', String(ASSIST_MODES[i][0] === assist)); });
+    } }, m[1]); });
+    var assistGroup = h('div', { class: 'seg-group', role: 'group', 'aria-label': 'Stroke smoothing' }, h('span', { class: 'seg-label' }, 'Assist'), assistBtns);
     var PIECE_COLORS = ['#6d28b8', '#c2570f', '#0f766e', '#be185d', '#1d4ed8', '#4d7c0f'];
     function drawGuide() {
       var w = wrap.clientWidth || 300, dpr = Math.min(window.devicePixelRatio || 1, 3), token = ++guideToken;
@@ -114,18 +120,27 @@ GL.writing = (function () {
       redraw(); drawGuide();
     }
     function width(w, p) { return Math.max(2.5, w * PEN[penSize]) * (0.55 + 0.9 * p); }
-    function seg(a, b, w) {
-      ctx.lineWidth = width(w, (a[2] + b[2]) / 2);
-      ctx.beginPath(); ctx.moveTo(a[0] * w, a[1] * w); ctx.lineTo(b[0] * w, b[1] * w); ctx.stroke();
+    /* Strokes are drawn as smooth curves through the midpoints of the recorded points, so a line looks like ink, not a polygon. */
+    function mid(a, b) { return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]; }
+    function piece(a, c, b, w) {
+      ctx.lineWidth = width(w, c[2]);
+      ctx.beginPath(); ctx.moveTo(a[0] * w, a[1] * w); ctx.quadraticCurveTo(c[0] * w, c[1] * w, b[0] * w, b[1] * w); ctx.stroke();
+    }
+    function drawStroke(s, w) {
+      var n = s.length, i;
+      if (n === 1) { ctx.beginPath(); ctx.moveTo(s[0][0] * w, s[0][1] * w); ctx.lineTo(s[0][0] * w + 0.1, s[0][1] * w); ctx.lineWidth = width(w, s[0][2]); ctx.stroke(); }
+      else if (n === 2) piece(s[0], s[0], s[1], w);
+      else {
+        piece(s[0], s[0], mid(s[0], s[1]), w);
+        for (i = 1; i < n - 1; i++) piece(mid(s[i - 1], s[i]), s[i], mid(s[i], s[i + 1]), w);
+        piece(mid(s[n - 2], s[n - 1]), s[n - 1], s[n - 1], w);
+      }
     }
     function redraw() {
       var w = canvas.clientWidth || 300;
       ctx.clearRect(0, 0, w, w);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#2a1838';
-      strokes.forEach(function (s) {
-        if (s.length === 1) { ctx.beginPath(); ctx.moveTo(s[0][0] * w, s[0][1] * w); ctx.lineTo(s[0][0] * w + 0.1, s[0][1] * w); ctx.lineWidth = width(w, s[0][2]); ctx.stroke(); }
-        for (var i = 1; i < s.length; i++) seg(s[i - 1], s[i], w);
-      });
+      strokes.forEach(function (s) { drawStroke(s, w); });
       undoBtn.disabled = !strokes.length; clearBtn.disabled = !strokes.length; checkBtn.disabled = !strokes.length || CHECKING;
       status.textContent = strokes.length ? strokes.length + (strokes.length === 1 ? ' stroke drawn' : ' strokes drawn') : 'Nothing drawn yet.';
     }
@@ -143,7 +158,7 @@ GL.writing = (function () {
       if (e.pointerType === 'pen') penUntil = Date.now() + 1500;
       e.preventDefault(); activeId = e.pointerId;
       try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
-      drawing = [pt(e)]; strokes.push(drawing); hideResult(); redraw();
+      drawing = [pt(e)]; lastRaw = drawing[0]; strokes.push(drawing); hideResult(); redraw();
     });
     canvas.addEventListener('pointermove', function (e) {
       if (!drawing || e.pointerId !== activeId) return;
@@ -151,13 +166,25 @@ GL.writing = (function () {
       var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       var w = canvas.clientWidth;
       ctx.lineCap = 'round'; ctx.strokeStyle = '#2a1838';
+      var a = ASSIST[assist];
       (evs.length ? evs : [e]).forEach(function (ev) {
-        var p = pt(ev), prev = drawing[drawing.length - 1];
-        if (Math.abs(p[0] - prev[0]) + Math.abs(p[1] - prev[1]) < 0.0015) return;
-        drawing.push(p); seg(prev, p, w);
+        var raw = pt(ev), prev = drawing[drawing.length - 1];
+        lastRaw = raw;
+        var p = [prev[0] + (raw[0] - prev[0]) * a, prev[1] + (raw[1] - prev[1]) * a, raw[2]];   // assist: ease toward the pen to iron out wobble
+        if (Math.abs(p[0] - prev[0]) + Math.abs(p[1] - prev[1]) < 0.0012) return;
+        drawing.push(p);
+        var n = drawing.length;
+        if (n === 2) piece(drawing[0], drawing[0], mid(drawing[0], drawing[1]), w);
+        else piece(mid(drawing[n - 3], drawing[n - 2]), drawing[n - 2], mid(drawing[n - 2], drawing[n - 1]), w);
       });
     });
-    function end(e) { if (drawing && (!e || e.pointerId === activeId)) { drawing = null; activeId = null; redraw(); } }
+    function end(e) {
+      if (drawing && (!e || e.pointerId === activeId)) {
+        // with assist on the line trails the pen slightly: finish exactly where the pen was lifted
+        if (lastRaw && drawing.length > 1) { var l = drawing[drawing.length - 1]; if (Math.abs(lastRaw[0] - l[0]) + Math.abs(lastRaw[1] - l[1]) > 0.002) drawing.push(lastRaw); }
+        drawing = null; activeId = null; redraw();
+      }
+    }
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
     canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -190,9 +217,9 @@ GL.writing = (function () {
             h('button', { type: 'button', class: 'btn small', onclick: function () { go(cur - 1); } }, 'Previous'),
             h('button', { type: 'button', class: 'btn small', onclick: function () { go(cur + 1); } }, 'Next')),
           refBox,
-          h('div', { class: 'row tools' }, undoBtn, clearBtn, guideBtn, penGroup, checkBtn, doneBtn)),
+          h('div', { class: 'row tools' }, undoBtn, clearBtn, guideBtn, penGroup, assistGroup, checkBtn, doneBtn)),
         h('div', { class: 'pad-col' }, wrap, guideNote, status, resultBox,
-          h('p', { class: 'pen-hint' }, 'Works with a finger, Apple Pencil or mouse. With a Pencil you can rest your palm on the screen.'))),
+          h('p', { class: 'pen-hint' }, 'Works with a finger, Apple Pencil or mouse. With a Pencil you can rest your palm on the screen. Assist smooths wobble as you draw: use Light or Strong while you build the shapes, then turn it down as your hand gets steadier. The grade scores the line you actually draw, so assist can raise it.'))),
       h('p', { class: 'note' }, '"Check my shape" compares your drawing\u2019s overall outline with the letter, at any size and position. It gives rough feedback only. Stroke order is not shown or checked here; a Gujarati teacher or a printed writing book is the best guide for that. Ctrl+Z also undoes.')));
     go(cur);
   }

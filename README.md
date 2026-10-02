@@ -57,7 +57,7 @@ I measured it on **simulated** drawings with the same font the app uses (each le
 Limits, honestly:
 - It compares overall shape and direction of the pen path to **one typeface**. It cannot judge stroke order, neatness or style, so a good letter in your own handwriting can score lower than a traced one.
 - Real hands are messier than the simulation, so expect the real numbers to be a bit worse. Treat the grade as a guide, not a mark.
-- The pad's pen is deliberately thin (Fine / Medium / Bold, default Medium) and the guide letter is large, so the letter is easy to trace.
+- The pen comes in Fine / Medium / Bold (default Medium, a clearly visible line) and the guide letter is large, so it is easy to trace. **Assist** (Off / Light / Strong) smooths wobble as you draw by easing the line toward the pen and drawing smooth curves. Because the grade scores the line you actually draw, assist can raise it; ease it down as your hand steadies.
 
 ## Strokes view (what it shows, and what it doesn't)
 
