@@ -465,8 +465,35 @@ GL.app = (function () {
     if (route !== 'write') main.focus({ preventScroll: true });
   }
 
+  /* Full-screen toggle in the sidebar. Shown only where the browser allows it (iPad Safari, desktop browsers) and
+     not when the app is already running full-screen as an installed app. */
+  function setupFullscreen() {
+    var btn = document.getElementById('fs-btn'); if (!btn) return;
+    var root = document.documentElement;
+    var request = root.requestFullscreen || root.webkitRequestFullscreen;
+    var exit = document.exitFullscreen || document.webkitExitFullscreen;
+    var installed = window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches);
+    if (!request || !exit || installed) return;
+    function isOn() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+    function paint() {
+      var on = isOn();
+      btn.setAttribute('aria-pressed', String(on));
+      btn.querySelector('span').textContent = on ? 'Exit full screen' : 'Full screen';
+      btn.querySelector('use').setAttribute('href', on ? '#i-collapse' : '#i-expand');
+    }
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      var p = isOn() ? exit.call(document) : request.call(root);
+      if (p && p.catch) p.catch(function () { GL.ui.toast('Full screen is not available here'); });
+    });
+    document.addEventListener('fullscreenchange', paint);
+    document.addEventListener('webkitfullscreenchange', paint);
+    paint();
+  }
+
   function init() {
     main = document.getElementById('app');
+    setupFullscreen();
     window.addEventListener('hashchange', render);
     render();
   }
