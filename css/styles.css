@@ -155,9 +155,8 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1rem 1.2rem; color: var(-
 @keyframes drift-c { to { transform: translate(10%, -12%) scale(1.18); } }
 
 .edge-letters { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
-.edge-letters span { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%); font-family: var(--gu); font-weight: 700; font-size: clamp(1.3rem, 2.2vw, 1.8rem); line-height: 1; color: rgba(109, 40, 184, .2); animation: bob 7s ease-in-out infinite; animation-delay: var(--d); }
-@keyframes bob { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 6px)); } }
-@media (max-width: 700px) { .edge-letters { display: none; } }
+.edge-letters span { position: absolute; font-family: var(--gu); font-weight: 700; line-height: 1; color: rgba(109, 40, 184, .14); transform: rotate(var(--r, 0deg)); animation: bob 8s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes bob { 0%, 100% { transform: rotate(var(--r, 0deg)) translateY(0); } 50% { transform: rotate(var(--r, 0deg)) translateY(-7px); } }
 body.fx-calm .edge-letters span { animation: none; }
 
 .sparkles { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
