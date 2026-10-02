@@ -79,14 +79,15 @@ Sync is built in but stays hidden until you connect a Firebase project, so the s
 3. *Project settings > Your apps > Web (`</>`)*: register an app and copy `apiKey` and `projectId`.
 4. Put them in `js/firebase-config.js`: `window.GL_FIREBASE = { apiKey: '...', projectId: '...' };`
 5. Publish the rules: paste `firebase/firestore.rules` into *Firestore > Rules > Publish* (or `npx firebase-tools deploy --only firestore:rules`).
-6. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials) open that project's **Browser key** and restrict it: *Websites* = `https://bansipatel.github.io/*` and `http://localhost:*`; *API restrictions* = Cloud Firestore API only.
+6. Optional: in the [Google Cloud console](https://console.cloud.google.com/apis/credentials) restrict the project's **Browser key** (*Websites* = your site's address, *API restrictions* = Cloud Firestore API only). This is good hygiene but adds no protection for this app: I tested that Firestore accepts requests the rules allow even with no key or a made-up key, so the key is not a security boundary here. The rules are.
 7. Bump `VERSION` in `sw.js`, commit and push.
 
 **What the rules allow.** Reading or writing a document needs its exact 64-character ID; listing is denied, so nobody can browse other people's progress. Writes must have the expected three fields and stay under 60 KB. Everything else is denied.
 
 **Limits, honestly.**
 - Anyone who has a person's code can read and change that person's progress. There are no accounts, so a lost code means a lost cloud copy (the device's own copy remains). The app says so.
-- The Firebase API key is public by design (it ships in every Firebase web app). The rules and the key restriction are what protect the database, not secrecy of the key.
+- The Firebase API key is public by design (it ships in every Firebase web app) and Firestore does not enforce it for requests the rules allow. **The security rules are the only protection**, which is why they were tested with real requests (read, write, list, wrong IDs, extra and missing fields, oversized data, other paths).
+- The remaining risk is abuse rather than snooping: anyone who knows the project ID could write junk records within the size limit and use up the free daily quota (about 20,000 writes). On the free Spark plan this pauses sync until the next day; it cannot create a bill. If that ever happens, the fix is to add Firebase App Check.
 - Merging is a sensible approximation, not perfect: if two devices practice the same letter at the same moment, counts take the larger value and the later record sets its strength.
 - "Reset all progress" resets this device and stops syncing it; the cloud copy is kept until you press "Delete cloud copy".
 - Free-plan limits (about 20,000 writes and 50,000 reads a day) are far above friend-scale use. If they were ever exceeded, Firebase would pause the service, not charge you.
