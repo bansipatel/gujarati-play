@@ -732,7 +732,7 @@ GL.app = (function () {
     }
     main.appendChild(node);
     if (celebrateNext && (route === '' || route === 'summary')) { celebrateNext = false; celebrateSoon(function () { var r = document.querySelector('.hero-panel, .menu'); var b = r ? r.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: 300 }; return [b.left + b.width / 2, b.top + Math.min(b.height / 2, 220)]; }); }
-    document.title = (titles[route] || 'Play') + ' · Akshar';
+    document.title = (titles[route] || 'Play') + ' · Read and Write Gujarati';
     Array.prototype.forEach.call(document.querySelectorAll('nav a[data-route]'), function (a) {
       var r = a.getAttribute('data-route'), on = r === route || (route === 'today' && r === '') || ((route === 'play' || route === 'flash') && r === 'practice') || (route === 'lesson' && r === 'lessons');
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');

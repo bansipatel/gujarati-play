@@ -1,6 +1,6 @@
 {
-  "name": "અક્ષર Akshar",
-  "short_name": "Akshar",
+  "name": "Read and Write Gujarati",
+  "short_name": "Gujarati",
   "description": "A short daily game for Gujarati speakers learning to read and write the script.",
   "start_url": "./",
   "scope": "./",

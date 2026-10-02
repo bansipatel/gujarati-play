@@ -1,5 +1,5 @@
 /*
- * Akshar — letter content.
+ * Gujarati reading and writing — letter content.
  *
  * To add content later:
  *   1. Add an item to GL.items (glyph, kind, roman, example word).

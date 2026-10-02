@@ -1,4 +1,4 @@
-# અક્ષર Akshar
+# અક્ષર: Read and Write Gujarati
 
 A playful, no-build website for Gujarati speakers who want to learn to **read and write** the script, five minutes a day. Plain HTML, CSS and JavaScript — no frameworks, no installs.
 
