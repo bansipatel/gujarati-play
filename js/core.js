@@ -144,7 +144,7 @@ GL.store = (function () {
   var persistent = true;
 
   function fresh() {
-    return { v: 1, name: '', nameAt: 0, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true, effects: 'system' } };
+    return { v: 1, name: '', nameAt: 0, badges: {}, badgeSeen: {}, points: 0, days: [], completed: {}, stats: {}, words: {}, settings: { hints: 'show', speech: true, effects: 'system' } };
   }
   function load() {
     var raw = null;
@@ -173,6 +173,9 @@ GL.store = (function () {
      Returns true if anything here changed. */
   function mergeInto(a, b) {
     var changed = false;
+    a.badges = a.badges || {}; a.badgeSeen = a.badgeSeen || {};
+    Object.keys(b.badges || {}).forEach(function (k) { if (!a.badges[k] || b.badges[k] < a.badges[k]) { a.badges[k] = b.badges[k]; changed = true; } });   // unlocked on either device = unlocked
+    Object.keys(b.badgeSeen || {}).forEach(function (k) { if (!a.badgeSeen[k]) { a.badgeSeen[k] = true; changed = true; } });
     if ((b.nameAt || 0) > (a.nameAt || 0)) { a.name = b.name || ''; a.nameAt = b.nameAt; changed = true; }   // the most recently edited name wins
     if ((b.points || 0) > a.points) { a.points = b.points; changed = true; }
     (b.days || []).forEach(function (d) { if (a.days.indexOf(d) === -1) { a.days.push(d); changed = true; } });
@@ -217,6 +220,9 @@ GL.store = (function () {
       if (clean === (state.name || '')) return clean;
       state.name = clean; state.nameAt = Date.now(); save(); return clean;
     },
+    /* Practice badges. A badge unlocks once and stays unlocked; "seen" remembers that the NEW marker was shown. */
+    unlockBadge: function (id) { if (!state.badges) state.badges = {}; if (state.badges[id]) return false; state.badges[id] = Date.now(); save(); return true; },
+    markBadgeSeen: function (ids) { if (!state.badgeSeen) state.badgeSeen = {}; var ch = false; ids.forEach(function (id) { if (!state.badgeSeen[id]) { state.badgeSeen[id] = true; ch = true; } }); if (ch) save(); },
     snapshot: function () { return JSON.parse(JSON.stringify(state)); },
     mergeRemote: function (remote) {
       if (!remote || remote.v !== 1 || typeof remote.points !== 'number' || typeof remote.completed !== 'object') return false;

@@ -275,9 +275,11 @@ GL.app = (function () {
           var first = store.completeLesson(n);
           GL.ui.award(first ? 50 : 15, first ? 'Lesson complete' : 'Replay bonus');
           var nextL = GL.lessonById(n + 1);
+          var freshBadges = first ? unlockBadges() : [];
           if (first) box.appendChild(h('div', { class: 'celebrate' }, GL.ui.confetti(30), h('div', { class: 't' }, 'Lesson ' + n + ' complete')));
           box.appendChild(GL.games.resultCard(summary, [
             h('p', { class: 'big-msg' }, first ? (nextL ? 'Lesson ' + nextL.id + ' is unlocked.' : 'You have finished every lesson.') : 'Replay done. Nice refresher.'),
+            freshBadges.length ? h('p', { class: 'big-msg new-badges', id: 'new-badges' }, 'New badge' + (freshBadges.length > 1 ? 's' : '') + ' unlocked: ', h('b', null, freshBadges.map(function (g) { return g.name; }).join(', ')), '.') : null,
             h('div', { class: 'row center' },
               nextL ? link('#/lesson/' + nextL.id, 'btn primary', 'Next lesson') : null,
               link('#/practice', 'btn', 'Practice games'), link('#/lesson/' + n, 'btn ghost', 'Replay'), link('#/', 'btn ghost', 'Home'))
@@ -296,50 +298,97 @@ GL.app = (function () {
     return box;
   }
 
-  /* ---------- Practice hub: a phone per game, grouped by what it trains ---------- */
+  /* ---------- Practice: a badge per game. Each one starts locked and unlocks as you learn. ---------- */
   var GAMES = [
-    { g: 'Letters and sounds', id: 'quick', name: 'Quick 5', tag: 'Warm-up', shot: 'ક', mock: 'g2', href: '#/play/quick', need: 'letters', text: 'About ten mixed questions, weighted toward letters due for review.' },
-    { g: 'Letters and sounds', id: 'match', name: 'Letter Match', tag: 'Letters', shot: 'ખ', mock: 'g2', href: '#/play/match', need: 'letters', text: 'Match letters to sounds, and sounds to letters.' },
-    { g: 'Letters and sounds', id: 'recall', name: 'Recall', tag: 'Memory', shot: 'ગ', mock: 'type', href: '#/play/recall', need: 'letters', text: 'See a letter and type its sound from memory.' },
-    { g: 'Letters and sounds', id: 'flash', name: 'Flashcards', tag: 'Cards', shot: 'ઘ', mock: 'card', href: '#/flash', need: 'letters', text: 'Flip, think, rate yourself. Keys: Space, ← and →.' },
-    { g: 'Words and spelling', id: 'decode', name: 'Say It', tag: 'Reading', shot: 'ઘર', mock: 'rows', href: '#/play/decode', need: 'words', text: 'Read a Gujarati word and pick how you say it.' },
-    { g: 'Words and spelling', id: 'spell', name: 'Spelling Check', tag: 'Spelling', shot: 'પાણી', mock: 'rows', href: '#/play/spell', need: 'spell', text: 'You know the sound. Pick the right spelling: ઇ/ઈ, ન/ણ, સ/શ/ષ.' },
-    { g: 'Words and spelling', id: 'find', name: 'Find It', tag: 'Letters in words', shot: 'કમળ', mock: 'tiles', href: '#/play/find', need: 'find', text: 'Tap the part of a real word that holds a letter.' },
-    { g: 'Words and spelling', id: 'words', name: 'Word Reader', tag: 'Meaning', shot: 'ચા', mock: 'g2', href: '#/play/words', need: 'words', text: 'Read real words and pick the meaning.' },
-    { g: 'Words and spelling', id: 'build', name: 'Word Builder', tag: 'Building', shot: 'ટોપી', mock: 'tiles', href: '#/play/build', need: 'words', text: 'Build words from letter and sign tiles.' },
-    { g: 'Writing', id: 'write', name: 'Writing Pad', tag: 'Writing', shot: 'ક', mock: 'pad', href: '#/write', need: 'free', text: 'Copy big letters. Works with Apple Pencil.' }
+    { g: 'Letters and sounds', id: 'quick', name: 'Quick 5', tag: 'Warm-up', shot: '\u0A95', theme: 'letters', href: '#/play/quick', need: 'letters', text: 'About ten mixed questions, weighted toward letters due for review.' },
+    { g: 'Letters and sounds', id: 'match', name: 'Letter Match', tag: 'Letters', shot: '\u0A96', theme: 'letters', href: '#/play/match', need: 'letters', text: 'Match letters to sounds, and sounds to letters.' },
+    { g: 'Letters and sounds', id: 'recall', name: 'Recall', tag: 'Memory', shot: '\u0A97', theme: 'letters', href: '#/play/recall', need: 'letters', text: 'See a letter and type its sound from memory.' },
+    { g: 'Letters and sounds', id: 'flash', name: 'Flashcards', tag: 'Cards', shot: '\u0A98', theme: 'letters', href: '#/flash', need: 'letters', text: 'Flip, think, rate yourself. Keys: Space, \u2190 and \u2192.' },
+    { g: 'Words and spelling', id: 'decode', name: 'Say It', tag: 'Reading', shot: '\u0A98\u0AB0', theme: 'words', href: '#/play/decode', need: 'words', text: 'Read a Gujarati word and pick how you say it.' },
+    { g: 'Words and spelling', id: 'spell', name: 'Spelling Check', tag: 'Spelling', shot: '\u0AAA\u0ABE\u0AA3\u0AC0', theme: 'words', href: '#/play/spell', need: 'spell', text: 'You know the sound. Pick the right spelling: \u0A87/\u0A88, \u0AA8/\u0AA3, \u0AB8/\u0AB6/\u0AB7.' },
+    { g: 'Words and spelling', id: 'find', name: 'Find It', tag: 'Letters in words', shot: '\u0A95\u0AAE\u0AB3', theme: 'words', href: '#/play/find', need: 'find', text: 'Tap the part of a real word that holds a letter.' },
+    { g: 'Words and spelling', id: 'words', name: 'Word Reader', tag: 'Meaning', shot: '\u0A9A\u0ABE', theme: 'words', href: '#/play/words', need: 'words', text: 'Read real words and pick the meaning.' },
+    { g: 'Words and spelling', id: 'build', name: 'Word Builder', tag: 'Building', shot: '\u0A9F\u0ACB\u0AAA\u0AC0', theme: 'words', href: '#/play/build', need: 'words', text: 'Build words from letter and sign tiles.' },
+    { g: 'Writing', id: 'write', name: 'Writing Pad', tag: 'Writing', shot: '\u0A95', theme: 'write', href: '#/write', need: 'free', text: 'Copy big letters. Works with Apple Pencil.' }
   ];
-  function mockOf(g, ok) {
-    var opts = { g2: h('div', { class: 'm-opts g2' }, h('i'), h('i', { class: 'on' }), h('i'), h('i')), rows: h('div', { class: 'm-opts' }, h('i'), h('i', { class: 'on' }), h('i')),
-      tiles: h('div', { class: 'm-opts g2' }, h('i'), h('i'), h('i', { class: 'on' }), h('i')), type: h('div', { class: 'm-opts' }, h('i', { class: 'on' })), card: null, pad: h('div', { class: 'm-pad' }) }[g.mock];
-    return h('div', { class: 'mock' }, h('div', { class: 'm-bar' }), h('div', { class: 'm-glyph gu', lang: 'gu' }, ok ? g.shot : ''), opts);
-  }
+  var WHY = { letters: 'Finish lesson 1 to unlock.', words: 'Finish lessons 1 and 2 to unlock.', spell: 'Learn a few look-alike letters, like \u0AA8 and \u0AA3, to unlock.', find: 'Finish lesson 2 to unlock.' };
 
-  function practice() {
+  /* Which badge requirements are met right now. */
+  function badgeAvail() {
     var s = stats(), pool = s.taught;
-    var avail = {
+    return {
       letters: s.learned >= 4, words: s.words >= 4, free: true,
       spell: s.words >= 4 && GL.games.build('spell', pool, { count: 3 }).length >= 3,
       find: s.words >= 4 && GL.games.build('find', pool, { count: 3 }).length >= 3
     };
-    var why = { letters: 'Finish lesson 1 to unlock.', words: 'Finish lessons 1 and 2 to unlock.', spell: 'Unlocks once you know a few look-alike letters, like ન and ણ.', find: 'Finish lesson 2 to unlock.' };
+  }
+  /* Record every badge whose requirement is now met. Returns the ones unlocked just now (the free one never counts as new). */
+  function unlockBadges() {
+    var av = badgeAvail(), fresh = [];
+    GAMES.forEach(function (g) {
+      if (av[g.need] && store.unlockBadge(g.id)) { if (g.need === 'free') store.markBadgeSeen([g.id]); else fresh.push(g); }
+    });
+    return fresh;
+  }
+
+  var rosetteN = 0;
+  /* A scalloped medal drawn in SVG; colors come from the badge's theme. */
+  function rosette() {
+    var NS = 'http://www.w3.org/2000/svg', id = 'rg' + (++rosetteN), n = 16, R = 50, d = '', i;
+    function el(tag, attrs) { var e = document.createElementNS(NS, tag); Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); }); return e; }
+    for (i = 0; i < n; i++) {
+      var a0 = i * 2 * Math.PI / n, a1 = (i + 1) * 2 * Math.PI / n, am = (a0 + a1) / 2, cr = R * 1.2;
+      if (i === 0) d += 'M ' + (R * Math.cos(a0)).toFixed(2) + ' ' + (R * Math.sin(a0)).toFixed(2);
+      d += ' Q ' + (cr * Math.cos(am)).toFixed(2) + ' ' + (cr * Math.sin(am)).toFixed(2) + ' ' + (R * Math.cos(a1)).toFixed(2) + ' ' + (R * Math.sin(a1)).toFixed(2);
+    }
+    var svg = el('svg', { viewBox: '-60 -60 120 120', class: 'rosette', 'aria-hidden': 'true', focusable: 'false' });
+    var defs = el('defs'), grad = el('linearGradient', { id: id, x1: '0', y1: '0', x2: '1', y2: '1' });
+    var s1 = el('stop', { offset: '0', style: 'stop-color: var(--c1)' }), s2 = el('stop', { offset: '1', style: 'stop-color: var(--c2)' });
+    grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad); svg.appendChild(defs);
+    svg.appendChild(el('path', { d: d + ' Z', fill: 'url(#' + id + ')' }));
+    svg.appendChild(el('circle', { r: '41', fill: 'none', stroke: '#fff', 'stroke-opacity': '.6', 'stroke-width': '1.4' }));
+    svg.appendChild(el('circle', { r: '37', fill: '#fff', 'fill-opacity': '.13' }));
+    svg.appendChild(el('ellipse', { cx: '-13', cy: '-31', rx: '24', ry: '9', fill: '#fff', 'fill-opacity': '.22', transform: 'rotate(-24)' }));
+    return svg;
+  }
+
+  function badge(g, open, fresh) {
+    var medal = h('span', { class: 'medal theme-' + g.theme }, rosette(),
+      open ? h('span', { class: 'medal-glyph gu' + (Array.from(g.shot).length > 2 ? ' long' : ''), lang: 'gu' }, g.shot) : GL.ui.icon('lock', 'medal-lock'),
+      fresh ? h('span', { class: 'medal-new' }, 'New') : null);
+    var label = h('span', { class: 'label-pill' }, g.name + ' - ' + g.tag);
+    var text = h('span', { class: 'badge-text' }, open ? g.text : 'Locked. ' + WHY[g.need]);
+    if (open) return h('a', { href: g.href, class: 'badge' + (fresh ? ' fresh' : ''), id: 'badge-' + g.id, 'aria-label': 'Play ' + g.name + (fresh ? ' (new badge)' : '') }, medal, label, text);
+    return h('div', { class: 'badge locked', id: 'badge-' + g.id, role: 'group', 'aria-label': g.name + ', locked. ' + WHY[g.need] }, medal, label, text);
+  }
+
+  function practice() {
+    var av = badgeAvail();
+    unlockBadges();
+    var seen = store.state().badgeSeen || {}, freshIds = [], freshNames = [], openCount = 0;
     var groups = [];
-    GAMES.forEach(function (g) { if (groups.indexOf(g.g) === -1) groups.push(g.g); });
-    return h('div', null,
+    GAMES.forEach(function (g) { if (groups.indexOf(g.g) === -1) groups.push(g.g); if (av[g.need]) openCount++; });
+    var page = h('div', null,
       h('h1', null, 'Practice'),
-      h('p', { class: 'lead' }, 'Games only use letters and words you have already learned.'),
+      h('p', { class: 'lead' }, 'Each game is a badge. They unlock as you learn, and they only use letters and words you have already learned.'),
+      h('p', { class: 'badge-count', id: 'badge-count' }, h('b', null, openCount + ' of ' + GAMES.length), ' badges unlocked'),
       strugglingBlock(),
       groups.map(function (gn) {
         return h('section', null, h('div', { class: 'group-head' }, h('h2', null, gn)),
-          h('div', { class: 'phone-grid' }, GAMES.filter(function (g) { return g.g === gn; }).map(function (g) {
-            var ok = avail[g.need];
-            var phone = h('div', { class: 'iphone' + (ok ? '' : ' locked') }, h('div', { class: 'screen' }, mockOf(g, ok)));
-            return h('div', { class: 'phone-stack' + (ok ? '' : ' locked'), role: 'group', 'aria-label': g.name },
-              ok ? h('a', { href: g.href, class: 'phone-link', 'aria-label': 'Play ' + g.name }, phone) : phone,
-              pill(g.name + ' - ' + g.tag, ok ? g.href : null),
-              h('p', { class: 'phone-text' }, ok ? g.text : why[g.need]));
+          h('div', { class: 'badge-grid' }, GAMES.filter(function (g) { return g.g === gn; }).map(function (g) {
+            var open = av[g.need], fresh = open && g.need !== 'free' && !seen[g.id];
+            if (fresh) { freshIds.push(g.id); freshNames.push(g.name); }
+            return badge(g, open, fresh);
           })));
       }));
+    if (freshIds.length) {
+      setTimeout(function () {
+        var m = document.querySelector('.badge.fresh .medal');
+        if (m && document.querySelector('.badge-grid')) { var r = m.getBoundingClientRect(); GL.ui.burst(r.left + r.width / 2, r.top + r.height / 2); GL.ui.toast('Badge unlocked: ' + freshNames.join(', ')); }
+        store.markBadgeSeen(freshIds);
+      }, 600);
+    }
+    return page;
   }
 
   function play(mode) {

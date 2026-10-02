@@ -331,26 +331,27 @@ button.peek { font: inherit; font-size: .82rem; min-height: 44px; border: 1px da
 /* ---------- Practice: phone frames from the loop slides ---------- */
 .group-head { margin: 2rem 0 .2rem; } .group-head:first-of-type { margin-top: 1rem; }
 .group-head p { color: var(--muted); margin: 0; font-size: .92rem; }
-.phone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.6rem 1rem; margin-top: 1rem; }
-@media (min-width: 768px) { .phone-grid { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); } }
-.phone-stack { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; }
-.phone-link { text-decoration: none; display: block; width: 100%; max-width: 132px; transition: transform .15s; }
-@media (min-width: 768px) { .phone-link, .iphone { max-width: 148px; } }
-@media (hover: hover) { .phone-link:hover { transform: translateY(-4px); } }
-.phone-link:active { transform: scale(.97); }
-.iphone { position: relative; width: 100%; max-width: 132px; aspect-ratio: 9 / 19.45; overflow: hidden; border-radius: 9% / 4.2%; background: var(--phone-edge); box-shadow: 0 18px 34px rgba(85, 39, 92, .16), 0 3px 10px rgba(85, 39, 92, .14), 0 0 0 4px var(--phone-edge); margin: 4px; }
-.screen { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--blank); }
-.screen::before { content: ""; position: absolute; z-index: 2; top: 2.6%; left: 50%; width: 31%; height: 3.8%; border-radius: 999px; background: #050509; transform: translateX(-50%); }
-.mock { position: absolute; inset: 0; padding: 12% 9% 8%; display: flex; flex-direction: column; gap: 6%; background: linear-gradient(180deg, #fff9fc, #f3e8fb); }
-.mock .m-bar { height: 4px; border-radius: 4px; background: #e6d2f1; position: relative; margin-top: 3%; } .mock .m-bar::after { content: ""; position: absolute; inset: 0 55% 0 0; border-radius: 4px; background: var(--grad-bright); }
-.mock .m-glyph { flex: 1; display: grid; place-items: center; font-family: var(--gu); font-size: 2.3rem; line-height: 1.2; color: var(--glyph); text-align: center; }
-.mock .m-opts { display: grid; gap: 5px; } .mock .m-opts.g2 { grid-template-columns: 1fr 1fr; }
-.mock .m-opts i { display: block; height: 15px; border-radius: 6px; background: #fff; border: 1px solid #ead7f2; } .mock .m-opts i.on { background: #dcfce7; border-color: #86efac; }
-.mock .m-pad { flex: 0 0 38%; border: 1.5px dashed #c9a8e3; border-radius: 10px; margin-bottom: 4%; }
-.iphone.locked { filter: grayscale(.7); opacity: .6; }
 .label-pill { display: flex; align-items: center; justify-content: center; width: min(100%, 220px); min-height: 44px; padding: .4em .8em; border-radius: 999px; background: var(--grad); color: #fff; font-weight: 700; font-size: .86rem; line-height: 1.15; text-align: center; text-decoration: none; box-shadow: 0 10px 22px rgba(157, 74, 194, .22); }
-.phone-stack.locked .label-pill { background: #9b88a8; box-shadow: none; }
-.phone-text { font-size: .82rem; color: var(--muted); margin: 0; max-width: 22ch; }
+.badge-count { margin: -.2rem 0 .4rem; color: var(--muted); } .badge-count b { color: var(--ink); font-family: var(--serif); font-size: 1.15rem; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.8rem 1rem; margin-top: 1rem; }
+@media (min-width: 768px) { .badge-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); } }
+.badge { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; text-decoration: none; color: inherit; position: relative; }
+.badge-text { font-size: .82rem; color: var(--muted); max-width: 22ch; }
+.medal { --c1: #7e3bc7; --c2: #bc69a6; position: relative; display: grid; place-items: center; width: 136px; height: 136px; filter: drop-shadow(0 14px 18px rgba(85, 39, 92, .24)); transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+.medal.theme-words { --c1: #d2531c; --c2: #f4a64d; } .medal.theme-write { --c1: #c98a0a; --c2: #ffd166; }
+.medal svg.rosette { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.medal-glyph { position: relative; z-index: 1; font-size: 2.7rem; line-height: 1; color: #fff; text-shadow: 0 2px 10px rgba(42, 24, 56, .4); }
+.medal-glyph.long { font-size: 1.9rem; }
+.medal-lock { position: relative; z-index: 1; width: 2.3rem; height: 2.3rem; color: #fff; stroke-width: 2; filter: drop-shadow(0 2px 6px rgba(42, 24, 56, .35)); }
+@media (hover: hover) { a.badge:hover .medal { transform: translateY(-5px) rotate(-3deg) scale(1.04); } }
+a.badge:active .medal { transform: scale(.96); }
+.badge.locked .medal { filter: grayscale(1) opacity(.55) drop-shadow(0 8px 12px rgba(85, 39, 92, .16)); }
+.badge.locked .label-pill { background: #9b88a8; box-shadow: none; }
+.medal-new { position: absolute; z-index: 2; top: -2px; right: -8px; background: #fff; color: var(--accent); font-size: .62rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; padding: .2rem .55rem; border-radius: 99px; box-shadow: 0 4px 12px rgba(85, 39, 92, .25); }
+.badge.fresh .medal { animation: badge-pop .8s cubic-bezier(.34, 1.56, .64, 1) both; }
+.badge.fresh .medal::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c2); opacity: 0; animation: ring 2.2s ease-out .4s 3; pointer-events: none; }
+@keyframes badge-pop { 0% { transform: scale(.4) rotate(-20deg); opacity: 0; } 70% { transform: scale(1.1) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+.new-badges b { color: var(--accent); }
 
 /* ---------- Alphabet ---------- */
 .alpha-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .6rem; margin-bottom: 1.2rem; }
